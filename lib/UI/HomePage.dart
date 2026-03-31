@@ -28,30 +28,43 @@ class _HomePageState extends State<HomePage> {
   void _showEditDialog(BuildContext context, Song song) {
     final titleController = TextEditingController(text: song.title);
     final artistController = TextEditingController(text: song.artist ?? '');
+    final isDark = context.read<MusicProvider>().isDarkMode;
 
     showDialog(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('음악 정보 수정'),
+          backgroundColor: isDark ? const Color(0xFF1C1C1C) : Colors.white,
+          title: Text(
+              '음악 정보 수정',
+              style: TextStyle(color: isDark ? Colors.white : Colors.black)
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: titleController,
-                decoration: const InputDecoration(labelText: '제목'),
+                style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                decoration: InputDecoration(
+                  labelText: '제목',
+                  labelStyle: TextStyle(color: isDark ? Colors.grey : Colors.black54),
+                ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: artistController,
-                decoration: const InputDecoration(labelText: '가수'),
+                style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                decoration: InputDecoration(
+                  labelText: '가수',
+                  labelStyle: TextStyle(color: isDark ? Colors.grey : Colors.black54),
+                ),
               ),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('취소'),
+              child: Text('취소', style: TextStyle(color: isDark ? Colors.white70 : Colors.black54)),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -74,6 +87,10 @@ class _HomePageState extends State<HomePage> {
                 if (!mounted) return;
                 Navigator.pop(dialogContext);
               },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isDark ? Colors.purpleAccent : null,
+                foregroundColor: isDark ? Colors.white : null,
+              ),
               child: const Text('저장'),
             ),
           ],
@@ -87,6 +104,11 @@ class _HomePageState extends State<HomePage> {
     final songs = context.watch<DB_Provider>().songs;
     context.read<MusicProvider>().setPlaylist(songs);
 
+    // 💡 테마 상태 가져오기
+    final isDark = context.watch<MusicProvider>().isDarkMode;
+    final backgroundColor = isDark ? const Color(0xFF121212) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black;
+
     final filteredSongs = songs.where((song) {
       final query = _searchQuery.toLowerCase().trim();
 
@@ -98,7 +120,9 @@ class _HomePageState extends State<HomePage> {
       return title.contains(query) || artist.contains(query);
     }).toList();
 
+    // 💡 Scaffold로 감싸서 배경이 어두워지도록 강제합니다.
     return Scaffold(
+      backgroundColor: backgroundColor,
       body: Column(
         children: [
           Expanded(
@@ -112,11 +136,14 @@ class _HomePageState extends State<HomePage> {
                         _searchQuery = value;
                       });
                     },
+                    style: TextStyle(color: textColor),
                     decoration: InputDecoration(
                       hintText: '노래 검색',
-                      prefixIcon: const Icon(Icons.search),
+                      hintStyle: TextStyle(color: isDark ? Colors.white54 : Colors.black45),
+                      prefixIcon: Icon(Icons.search, color: isDark ? Colors.white54 : Colors.black45),
                       filled: true,
-                      fillColor: Colors.grey[200],
+                      // 💡 다크 모드일 땐 더 짙은 회색으로 변경
+                      fillColor: isDark ? const Color(0xFF1C1C1C) : Colors.grey[200],
                       contentPadding: const EdgeInsets.symmetric(vertical: 0),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(30),
@@ -127,8 +154,8 @@ class _HomePageState extends State<HomePage> {
                 ),
                 Expanded(
                   child: filteredSongs.isEmpty
-                      ? const Center(
-                    child: Text('검색 결과가 없습니다'),
+                      ? Center(
+                    child: Text('검색 결과가 없습니다', style: TextStyle(color: textColor)),
                   )
                       : ListView.builder(
                     itemCount: filteredSongs.length,
@@ -136,9 +163,11 @@ class _HomePageState extends State<HomePage> {
                       final song = filteredSongs[index];
 
                       return ListTile(
-                        title: Text(song.title),
-                        subtitle: Text(song.artist ?? '가수없음'),
+                        title: Text(song.title, style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
+                        subtitle: Text(song.artist ?? '가수없음', style: TextStyle(color: isDark ? Colors.white70 : Colors.grey[700])),
                         trailing: PopupMenuButton<String>(
+                          color: isDark ? const Color(0xFF1C1C1C) : Colors.white,
+                          icon: Icon(Icons.more_vert, color: isDark ? Colors.white : Colors.black),
                           onSelected: (value) async {
                             if (value == 'edit') {
                               _showEditDialog(context, song);
@@ -148,18 +177,18 @@ class _HomePageState extends State<HomePage> {
                               }
                             }
                           },
-                          itemBuilder: (context) => const [
+                          itemBuilder: (context) => [
                             PopupMenuItem<String>(
                               value: 'edit',
                               child: Row(
                                 children: [
-                                  Icon(Icons.edit, size: 20),
-                                  SizedBox(width: 8),
-                                  Text('수정'),
+                                  Icon(Icons.edit, size: 20, color: isDark ? Colors.white70 : Colors.black),
+                                  const SizedBox(width: 8),
+                                  Text('수정', style: TextStyle(color: isDark ? Colors.white : Colors.black)),
                                 ],
                               ),
                             ),
-                            PopupMenuItem<String>(
+                            const PopupMenuItem<String>(
                               value: 'delete',
                               child: Row(
                                 children: [
@@ -175,13 +204,15 @@ class _HomePageState extends State<HomePage> {
                           ],
                         ),
                         onTap: () {
-                          context.read<MusicProvider>().playSong(song);
+                          final musicProvider = context.read<MusicProvider>();
+                          final dbProvider = context.read<DB_Provider>();
+
+                          musicProvider.setPlaylist(dbProvider.songs);
+                          musicProvider.playSong(song);
 
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
-                              builder: (_) => const PlayerPage(),
-                            ),
+                            MaterialPageRoute(builder: (_) => const PlayerPage()),
                           );
                         },
                       );
