@@ -181,6 +181,28 @@ class MusicProvider extends ChangeNotifier {
 
     notifyListeners();
   }
+  Future<void> playPlaylist(List<Song> songs, int startIndex) async {
+    if (songs.isEmpty || startIndex < 0 || startIndex >= songs.length) return;
+
+    try {
+      _playlist = List.from(songs);
+      _originalPlaylist = List.from(songs);
+
+      currentSong = _playlist[startIndex];
+
+      isLoading = true;
+      notifyListeners();
+
+      await _player.stop();
+      await _player.setFilePath(currentSong!.filePath);
+      await _player.play();
+    } catch (e) {
+      debugPrint('playPlaylist 오류: $e');
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
 
   Future<void> _handleSongComplete() async {
     if (currentSong == null) return;
