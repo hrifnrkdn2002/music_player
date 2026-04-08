@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:music_player/Provider/ThemeProvider.dart';
+import 'package:music_player/Utils/AppTheme.dart';
 import 'package:provider/provider.dart';
 
 import 'package:music_player/DB/DB_Provider.dart';
@@ -247,8 +249,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
     });
 
     try {
-      final dynamic dbProvider = context.read<DB_Provider>();
-      await dbProvider.updatePlaylistSongOrder(widget.playlistId, _songs);
+      await context.read<DB_Provider>().updatePlaylistSongOrder(widget.playlistId, _songs);
     } catch (e) {
       debugPrint('순서 저장 메서드가 아직 없습니다: $e');
     }
@@ -256,24 +257,21 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final musicProvider = context.watch<MusicProvider>();
-    final isDark = musicProvider.isDarkMode;
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
 
-    final backgroundColor = isDark ? const Color(0xFF121212) : Colors.white;
-    final appBarColor = isDark ? const Color(0xFF121212) : Colors.white;
+    final theme = AppTheme(isDark);
     final tileColor = isDark ? const Color(0xFF1C1C1C) : Colors.grey[100]!;
-    final textColor = isDark ? Colors.white : Colors.black;
-    final subtitleColor = isDark ? Colors.white60 : Colors.grey[600]!;
     final inactiveBorderColor = isDark ? Colors.white38 : Colors.grey[500]!;
-    final activeColor = isDark ? Colors.purpleAccent : Colors.purple;
     final deleteColor = isDark ? Colors.redAccent : Colors.red;
-    final addColor = isDark ? Colors.purpleAccent : Colors.purple;
+    final textColor = theme.text;
+    final subtitleColor = theme.subtitle;
+    final activeColor = theme.accent;
 
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: theme.background,
       appBar: AppBar(
-        backgroundColor: appBarColor,
-        foregroundColor: textColor,
+        backgroundColor: theme.background,
+        foregroundColor: theme.text,
         elevation: 0,
         centerTitle: true,
         title: Column(
@@ -287,7 +285,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
               '곡 ${_songs.length}개',
               style: TextStyle(
                 fontSize: 12,
-                color: subtitleColor,
+                color: theme.subtitle,
               ),
             ),
           ],
@@ -303,7 +301,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
             onPressed: _toggleSelectionMode,
             icon: Icon(
               _isSelectionMode ? Icons.close : Icons.check_box_outlined,
-              color: textColor,
+              color: theme.text,
             ),
             tooltip: _isSelectionMode ? '선택 취소' : '선택하기',
           ),
@@ -311,7 +309,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
             onPressed: _isSelectionMode ? null : _openAddSongPage,
             icon: Icon(
               Icons.add,
-              color: _isSelectionMode ? subtitleColor : addColor,
+              color: _isSelectionMode ? theme.subtitle : theme.accent,
             ),
             tooltip: '곡 추가',
           ),
@@ -336,13 +334,13 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
                         Icon(
                           Icons.queue_music,
                           size: 56,
-                          color: subtitleColor,
+                          color: theme.subtitle,
                         ),
                         const SizedBox(height: 12),
                         Text(
                           '플레이리스트에 담긴 곡이 없습니다.',
                           style: TextStyle(
-                            color: subtitleColor,
+                            color: theme.subtitle,
                             fontSize: 16,
                           ),
                         ),
@@ -350,7 +348,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
                         Text(
                           '우측 상단 + 버튼으로 곡을 추가해보세요.',
                           style: TextStyle(
-                            color: subtitleColor,
+                            color: theme.subtitle,
                             fontSize: 13,
                           ),
                         ),

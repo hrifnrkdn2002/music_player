@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:music_player/Provider/MusicProvider.dart';
+import 'package:music_player/Provider/ThemeProvider.dart';
+import 'package:music_player/Utils/AppTheme.dart';
 import 'package:provider/provider.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -7,29 +8,24 @@ class SettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 💡 Provider를 통해 테마 상태를 실시간으로 감시합니다.
-    final musicProvider = context.watch<MusicProvider>();
-
-    // 🎨 현재 테마 상태에 따라 색상을 수동으로 정의합니다.
-    final isDark = musicProvider.isDarkMode;
-    final backgroundColor = isDark ? const Color(0xFF121212) : Colors.white;
-    final textColor = isDark ? Colors.white : Colors.black;
-    final subtitleColor = isDark ? Colors.white70 : Colors.grey[600];
+    final themeProvider = context.watch<ThemeProvider>();
+    final isDark = themeProvider.isDarkMode;
+    final theme = AppTheme(isDark);
 
     return Scaffold(
       // 💡 1. 배경색을 현재 테마 상태에 맞춰 강제로 칠합니다.
-      backgroundColor: backgroundColor,
+      backgroundColor: theme.background,
 
       appBar: AppBar(
         title: Text(
             '설정',
-            style: TextStyle(color: textColor, fontWeight: FontWeight.bold)
+            style: TextStyle(color: theme.text, fontWeight: FontWeight.bold)
         ),
         centerTitle: true,
         // 💡 2. 앱바 배경색도 강제 주입
-        backgroundColor: backgroundColor,
+        backgroundColor: theme.background,
         elevation: 0,
-        iconTheme: IconThemeData(color: textColor),
+        iconTheme: IconThemeData(color: theme.text),
       ),
       body: ListView(
         children: [
@@ -45,18 +41,18 @@ class SettingsPage extends StatelessWidget {
               '다크 모드',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: textColor, // 💡 3. 타이틀 글자색 강제 주입
+                color: theme.text, // 💡 3. 타이틀 글자색 강제 주입
               ),
             ),
             subtitle: Text(
               isDark ? '어두운 테마 사용 중' : '밝은 테마 사용 중',
-              style: TextStyle(color: subtitleColor), // 💡 4. 서브타이틀 글자색 강제 주입
+              style: TextStyle(color: theme.subtitle), // 💡 4. 서브타이틀 글자색 강제 주입
             ),
             trailing: Switch(
               value: isDark,
               onChanged: (value) {
                 // 🔥 스위치를 누르면 MusicProvider의 토글 함수가 실행되며 앱 전체 테마가 바뀝니다.
-                musicProvider.toggleTheme();
+                themeProvider.toggleTheme();
               },
               activeColor: Colors.purpleAccent,
             ),
@@ -69,7 +65,7 @@ class SettingsPage extends StatelessWidget {
             leading: Icon(Icons.info_outline, color: isDark ? Colors.white70 : Colors.black54),
             title: Text(
               '앱 버전',
-              style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+              style: TextStyle(color: theme.text, fontWeight: FontWeight.bold),
             ),
             trailing: Text(
               'v1.0.0',

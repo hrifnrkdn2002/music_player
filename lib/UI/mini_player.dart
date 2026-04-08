@@ -1,19 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:music_player/Provider/MusicProvider.dart';
 import 'package:music_player/UI/PlayerPage.dart';
+import 'package:music_player/Provider/ThemeProvider.dart';
+import 'package:music_player/Utils/AppTheme.dart';
+import 'package:music_player/Utils/DurationFormatter.dart';
 import 'package:provider/provider.dart';
 import 'package:just_audio/just_audio.dart';
 
 class MiniPlayer extends StatelessWidget {
   const MiniPlayer({super.key});
-
-  String _formatDuration(Duration duration) {
-    final minutes =
-    duration.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final seconds =
-    duration.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$minutes:$seconds';
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,14 +21,11 @@ class MiniPlayer extends StatelessWidget {
 
     final player = musicProvider.player;
 
-    // 💡 테마 상태 가져오기
-    final isDark = musicProvider.isDarkMode;
-    final backgroundColor = isDark ? const Color(0xFF1C1C1C) : Colors.grey[200];
-    final textColor = isDark ? Colors.white : Colors.black;
-    final subtitleColor = isDark ? Colors.white70 : Colors.grey[600];
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+    final theme = AppTheme(isDark);
 
     return Material(
-      color: backgroundColor, // 💡 배경색 동적 변경
+      color: theme.surface,
       child: InkWell(
         onTap: () {
           Navigator.push(
@@ -68,13 +60,13 @@ class MiniPlayer extends StatelessWidget {
                       children: [
                         Text(
                           currentSong.title,
-                          style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+                          style: TextStyle(fontWeight: FontWeight.bold, color: theme.text),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
                           currentSong.artist ?? '재생 중인 곡 없음',
-                          style: TextStyle(color: subtitleColor, fontSize: 12),
+                          style: TextStyle(color: theme.subtitle, fontSize: 12),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -85,7 +77,7 @@ class MiniPlayer extends StatelessWidget {
                     onPressed: () async {
                       await musicProvider.playPrevious();
                     },
-                    icon: Icon(Icons.skip_previous, color: textColor),
+                    icon: Icon(Icons.skip_previous, color: theme.text),
                   ),
                   IconButton(
                     onPressed: () {
@@ -97,14 +89,14 @@ class MiniPlayer extends StatelessWidget {
                     },
                     icon: Icon(
                       musicProvider.isPlaying ? Icons.pause : Icons.play_arrow,
-                      color: textColor,
+                      color: theme.text,
                     ),
                   ),
                   IconButton(
                     onPressed: () async {
                       await musicProvider.playNext();
                     },
-                    icon: Icon(Icons.skip_next, color: textColor),
+                    icon: Icon(Icons.skip_next, color: theme.text),
                   ),
                 ],
               ),
@@ -146,12 +138,12 @@ class MiniPlayer extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              _formatDuration(position),
-                              style: TextStyle(fontSize: 12, color: subtitleColor),
+                              DurationFormatter.format(position),
+                              style: TextStyle(fontSize: 12, color: theme.subtitle),
                             ),
                             Text(
-                              _formatDuration(duration),
-                              style: TextStyle(fontSize: 12, color: subtitleColor),
+                              DurationFormatter.format(duration),
+                              style: TextStyle(fontSize: 12, color: theme.subtitle),
                             ),
                           ],
                         ),

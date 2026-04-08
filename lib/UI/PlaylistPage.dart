@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:music_player/Provider/ThemeProvider.dart';
+import 'package:music_player/Utils/AppTheme.dart';
 import 'package:provider/provider.dart';
 import 'package:music_player/Provider/MusicProvider.dart';
 import 'package:music_player/DB/DB_Provider.dart';
 
-import 'PlaylistDetailPage.dart'; // 💡 프로젝트에 맞게 DBProvider 또는 DB_Provider로 유지
+import 'PlaylistDetailPage.dart'; // 💡 프로젝트에 맞게 DBProvider 또는 DbProvider로 유지
 
 class PlaylistPage extends StatefulWidget {
   const PlaylistPage({super.key});
@@ -30,10 +32,8 @@ class _PlaylistPageState extends State<PlaylistPage> {
     final musicProvider = context.watch<MusicProvider>();
     final dbProvider = context.watch<DB_Provider>();
 
-    final isDark = musicProvider.isDarkMode;
-    final backgroundColor = isDark ? const Color(0xFF121212) : Colors.white;
-    final textColor = isDark ? Colors.white : Colors.black;
-    final subtitleColor = isDark ? Colors.white60 : Colors.grey[600];
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+    final theme = AppTheme(isDark);
 
     // 💡 [검색 및 정렬] 검색어에 맞는 플레이리스트만 필터링 (DB에서 이미 최신순 정렬되어 옴)
     final filteredPlaylists = dbProvider.playlists.where((playlist) {
@@ -42,7 +42,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
     }).toList();
 
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: theme.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -60,11 +60,11 @@ class _PlaylistPageState extends State<PlaylistPage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: TextField(
-                        style: TextStyle(color: textColor),
+                        style: TextStyle(color: theme.text),
                         decoration: InputDecoration(
                           hintText: '플레이리스트 검색',
-                          hintStyle: TextStyle(color: subtitleColor),
-                          prefixIcon: Icon(Icons.search, color: subtitleColor),
+                          hintStyle: TextStyle(color: theme.subtitle),
+                          prefixIcon: Icon(Icons.search, color: theme.subtitle),
                           border: InputBorder.none,
                           contentPadding: const EdgeInsets.symmetric(vertical: 12),
                         ),
@@ -103,7 +103,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
                   _searchQuery.isEmpty
                       ? '생성된 플레이리스트가 없습니다.'
                       : '검색 결과가 없습니다.',
-                  style: TextStyle(color: subtitleColor, fontSize: 16),
+                  style: TextStyle(color: theme.subtitle, fontSize: 16),
                 ),
               )
                   : ListView.builder(
@@ -128,14 +128,14 @@ class _PlaylistPageState extends State<PlaylistPage> {
                     ),
                     title: Text(
                       playlistName,
-                      style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: theme.text, fontWeight: FontWeight.bold),
                     ),
                     subtitle: Text(
-                      '곡 0개', // 💡 곡 개수 표시는 추후 매핑 테이블 조회를 추가해 고도화할 수 있습니다.
-                      style: TextStyle(color: subtitleColor, fontSize: 12),
+                      '곡 ${playlist['song_count'] ?? 0}개',
+                      style: TextStyle(color: theme.subtitle, fontSize: 12),
                     ),
                     trailing: PopupMenuButton<String>(
-                      icon: Icon(Icons.more_vert, color: subtitleColor),
+                      icon: Icon(Icons.more_vert, color: theme.subtitle),
                       color: isDark ? const Color(0xFF1C1C1C) : Colors.white,
                       onSelected: (value) {
                         if (value == 'edit') {
@@ -149,9 +149,9 @@ class _PlaylistPageState extends State<PlaylistPage> {
                           value: 'edit',
                           child: Row(
                             children: [
-                              Icon(Icons.edit, size: 20, color: textColor),
+                              Icon(Icons.edit, size: 20, color: theme.text),
                               const SizedBox(width: 8),
-                              Text('이름 수정', style: TextStyle(color: textColor)),
+                              Text('이름 수정', style: TextStyle(color: theme.text)),
                             ],
                           ),
                         ),

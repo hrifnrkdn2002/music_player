@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:music_player/Provider/MusicProvider.dart';
+import 'package:music_player/Provider/ThemeProvider.dart';
+import 'package:music_player/Utils/AppTheme.dart';
+import 'package:music_player/Utils/DurationFormatter.dart';
 import 'package:provider/provider.dart';
 import 'package:just_audio/just_audio.dart';
 
@@ -13,14 +16,6 @@ class PlayerPage extends StatefulWidget {
 class _PlayerPageState extends State<PlayerPage> {
   bool _isDragging = false;
   double _dragValue = 0.0;
-
-  String _formatDuration(Duration duration) {
-    final minutes =
-    duration.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final seconds =
-    duration.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$minutes:$seconds';
-  }
 
   IconData _repeatIcon(RepeatModeState mode) {
     switch (mode) {
@@ -53,34 +48,41 @@ class _PlayerPageState extends State<PlayerPage> {
     final currentSong = musicProvider.currentSong;
     final player = musicProvider.player;
 
+    final error = musicProvider.playError;
+    if (error != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error), backgroundColor: Colors.red),
+        );
+        musicProvider.playError = null;
+      });
+    }
+
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
-    // 💡 테마 상태 가져오기
-    final isDark = musicProvider.isDarkMode;
-    final backgroundColor = isDark ? const Color(0xFF121212) : Colors.white;
-    final textColor = isDark ? Colors.white : Colors.black;
-    final subtitleColor = isDark ? Colors.white70 : Colors.grey[600];
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+    final theme = AppTheme(isDark);
 
     if (currentSong == null) {
       return Scaffold(
-        backgroundColor: backgroundColor,
+        backgroundColor: theme.background,
         appBar: AppBar(
           title: const Text('재생 중'),
-          backgroundColor: backgroundColor,
-          foregroundColor: textColor,
+          backgroundColor: theme.background,
+          foregroundColor: theme.text,
         ),
-        body: Center(child: Text('재생 중인 곡이 없습니다.', style: TextStyle(color: textColor))),
+        body: Center(child: Text('재생 중인 곡이 없습니다.', style: TextStyle(color: theme.text))),
       );
     }
 
     return Scaffold(
-      backgroundColor: backgroundColor, // 💡 배경색 적용
+      backgroundColor: theme.background, // 💡 배경색 적용
       appBar: AppBar(
         title: const Text('재생 중'),
         centerTitle: true,
-        backgroundColor: backgroundColor,
-        foregroundColor: textColor,
+        backgroundColor: theme.background,
+        foregroundColor: theme.text,
         leading: IconButton(
           icon: const Icon(Icons.keyboard_arrow_down),
           onPressed: () => Navigator.pop(context),
@@ -122,7 +124,7 @@ class _PlayerPageState extends State<PlayerPage> {
                       style: TextStyle(
                         fontSize: (screenWidth * 0.05).clamp(14.0, 22.0),
                         fontWeight: FontWeight.bold,
-                        color: textColor, // 💡 텍스트 색상
+                        color: theme.text, // 💡 텍스트 색상
                       ),
                       textAlign: TextAlign.center,
                       maxLines: 2,
@@ -133,7 +135,7 @@ class _PlayerPageState extends State<PlayerPage> {
                       currentSong.artist ?? '알 수 없는 아티스트',
                       style: TextStyle(
                         fontSize: (screenWidth * 0.035).clamp(11.0, 15.0),
-                        color: subtitleColor, // 💡 서브타이틀 색상
+                        color: theme.subtitle, // 💡 서브타이틀 색상
                       ),
                       textAlign: TextAlign.center,
                       maxLines: 1,
@@ -192,8 +194,8 @@ class _PlayerPageState extends State<PlayerPage> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(_formatDuration(position), style: TextStyle(color: subtitleColor)),
-                            Text(_formatDuration(duration), style: TextStyle(color: subtitleColor)),
+                            Text(DurationFormatter.format(position), style: TextStyle(color: theme.subtitle)),
+                            Text(DurationFormatter.format(duration), style: TextStyle(color: theme.subtitle)),
                           ],
                         ),
                       ),
@@ -238,7 +240,7 @@ class _PlayerPageState extends State<PlayerPage> {
                               icon: Icon(
                                 Icons.skip_previous,
                                 size: screenWidth * 0.1,
-                                color: textColor,
+                                color: theme.text,
                               ),
                             ),
                             IconButton(
@@ -264,7 +266,7 @@ class _PlayerPageState extends State<PlayerPage> {
                               icon: Icon(
                                 Icons.skip_next,
                                 size: screenWidth * 0.1,
-                                color: textColor,
+                                color: theme.text,
                               ),
                             ),
                             IconButton(

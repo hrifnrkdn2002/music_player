@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:music_player/Provider/ThemeProvider.dart';
+import 'package:music_player/Utils/AppTheme.dart';
 import 'package:provider/provider.dart';
 
 import 'package:music_player/DB/DB_Provider.dart';
@@ -48,8 +50,8 @@ class _AddSongToPlaylistPageState extends State<AddSongToPlaylistPage> {
       await dbProvider.getSongsInPlaylist(widget.playlistId);
 
       final existingIds = playlistSongs
-          .where((song) => song.id != null)
-          .map((song) => song.id!)
+          .map((song) => song.id)
+          .whereType<int>()
           .toSet();
 
       if (!mounted) return;
@@ -99,13 +101,9 @@ class _AddSongToPlaylistPageState extends State<AddSongToPlaylistPage> {
   @override
   Widget build(BuildContext context) {
     final musicProvider = context.watch<MusicProvider>();
-    final isDark = musicProvider.isDarkMode;
-
-    final backgroundColor = isDark ? const Color(0xFF121212) : Colors.white;
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+    final theme = AppTheme(isDark);
     final tileColor = isDark ? const Color(0xFF1C1C1C) : Colors.grey[100]!;
-    final textColor = isDark ? Colors.white : Colors.black;
-    final subtitleColor = isDark ? Colors.white60 : Colors.grey[600]!;
-    final accentColor = isDark ? Colors.purpleAccent : Colors.purple;
 
     final filteredSongs = _allSongs.where((song) {
       final songId = song.id;
@@ -123,10 +121,10 @@ class _AddSongToPlaylistPageState extends State<AddSongToPlaylistPage> {
     }).toList();
 
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: theme.background,
       appBar: AppBar(
-        backgroundColor: backgroundColor,
-        foregroundColor: textColor,
+        backgroundColor: theme.background,
+        foregroundColor: theme.text,
         elevation: 0,
         centerTitle: true,
         title: Column(
@@ -141,7 +139,7 @@ class _AddSongToPlaylistPageState extends State<AddSongToPlaylistPage> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.normal,
-                color: subtitleColor,
+                color: theme.subtitle,
               ),
             ),
           ],
@@ -158,11 +156,11 @@ class _AddSongToPlaylistPageState extends State<AddSongToPlaylistPage> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: TextField(
-                  style: TextStyle(color: textColor),
+                  style: TextStyle(color: theme.text),
                   decoration: InputDecoration(
                     hintText: '곡 제목 또는 아티스트 검색',
-                    hintStyle: TextStyle(color: subtitleColor),
-                    prefixIcon: Icon(Icons.search, color: subtitleColor),
+                    hintStyle: TextStyle(color: theme.subtitle),
+                    prefixIcon: Icon(Icons.search, color: theme.subtitle),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 12,
@@ -193,7 +191,7 @@ class _AddSongToPlaylistPageState extends State<AddSongToPlaylistPage> {
                       child: Text(
                         '기기에 추가된 곡이 없습니다.',
                         style: TextStyle(
-                          color: subtitleColor,
+                          color: theme.subtitle,
                           fontSize: 16,
                         ),
                       ),
@@ -214,7 +212,7 @@ class _AddSongToPlaylistPageState extends State<AddSongToPlaylistPage> {
                             ? '추가할 수 있는 곡이 없습니다.'
                             : '검색 결과가 없습니다.',
                         style: TextStyle(
-                          color: subtitleColor,
+                          color: theme.subtitle,
                           fontSize: 16,
                         ),
                       ),
@@ -258,7 +256,7 @@ class _AddSongToPlaylistPageState extends State<AddSongToPlaylistPage> {
                         title: Text(
                           song.title,
                           style: TextStyle(
-                            color: textColor,
+                            color: theme.text,
                             fontWeight: FontWeight.w600,
                           ),
                           maxLines: 1,
@@ -271,7 +269,7 @@ class _AddSongToPlaylistPageState extends State<AddSongToPlaylistPage> {
                                 ? song.artist!
                                 : '알 수 없는 아티스트',
                             style: TextStyle(
-                              color: subtitleColor,
+                              color: theme.subtitle,
                               fontSize: 12,
                             ),
                             maxLines: 1,
@@ -280,7 +278,7 @@ class _AddSongToPlaylistPageState extends State<AddSongToPlaylistPage> {
                         ),
                         trailing: Icon(
                           Icons.add_circle,
-                          color: accentColor,
+                          color: theme.accent,
                         ),
                         onTap: () => _addSong(song),
                       ),

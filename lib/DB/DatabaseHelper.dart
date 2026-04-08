@@ -22,7 +22,13 @@ class DatabaseHelper {
       path,
       version: 1,
       onCreate: _createDB,
+      onUpgrade: _upgradeDB,
     );
+  }
+
+  Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    // 버전 업그레이드 시 여기에 마이그레이션을 순서대로 추가합니다.
+    // 예: if (oldVersion < 2) { await db.execute('ALTER TABLE songs ADD COLUMN ...'); }
   }
 
   Future<void> _createDB(Database db, int version) async {
@@ -105,13 +111,16 @@ class DatabaseHelper {
     });
   }
 
-  // 플레이리스트 목록 조회 (항상 최신 업데이트순으로 정렬)
+  // 플레이리스트 목록 조회 (곡 수 포함, 최신 업데이트순 정렬)
   Future<List<Map<String, dynamic>>> getPlaylists() async {
     final db = await database;
-    return await db.query(
-      'playlists',
-      orderBy: 'updated_at DESC',
-    );
+    return await db.rawQuery('''
+      SELECT p.*, COUNT(ps.song_id) as song_count
+      FROM playlists p
+      LEFT JOIN playlist_songs ps ON p.id = ps.playlist_id
+      GROUP BY p.id
+      ORDER BY p.updated_at DESC
+    ''');
   }
 
   // 플레이리스트 이름 수정 (수정 시에도 최신순으로 맨 위로 올려야 하므로 updated_at을 갱신합니다)
