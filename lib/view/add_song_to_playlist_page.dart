@@ -96,7 +96,6 @@ class _AddSongToPlaylistPageState extends State<AddSongToPlaylistPage> {
 
   @override
   Widget build(BuildContext context) {
-    final musicProvider = context.watch<MusicViewModel>();
     final isDark = context.watch<DarkModeViewModel>().isDarkMode;
     final theme = AppTheme(isDark);
     final tileColor = isDark ? const Color(0xFF1C1C1C) : Colors.grey[100]!;
