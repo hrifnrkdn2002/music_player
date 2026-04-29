@@ -1,12 +1,10 @@
-import 'package:path/path.dart';
-import 'package:sqflite/sqflite.dart';
-import 'package:music_player/Models/Song.dart';
+import 'package:music_player/index/repository_index.dart';
 
-class DatabaseHelper {
-  static final DatabaseHelper instance = DatabaseHelper._init();
+class DatabaseRepository {
+  static final DatabaseRepository instance = DatabaseRepository._init();
   static Database? _database;
 
-  DatabaseHelper._init();
+  DatabaseRepository._init();
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -105,10 +103,7 @@ class DatabaseHelper {
   Future<int> createPlaylist(String name) async {
     final db = await database;
     final now = DateTime.now().millisecondsSinceEpoch;
-    return await db.insert('playlists', {
-      'name': name,
-      'updated_at': now,
-    });
+    return await db.insert('playlists', {'name': name, 'updated_at': now});
   }
 
   // 플레이리스트 목록 조회 (곡 수 포함, 최신 업데이트순 정렬)
@@ -129,10 +124,7 @@ class DatabaseHelper {
     final now = DateTime.now().millisecondsSinceEpoch;
     return await db.update(
       'playlists',
-      {
-        'name': newName,
-        'updated_at': now,
-      },
+      {'name': newName, 'updated_at': now},
       where: 'id = ?',
       whereArgs: [id],
     );
@@ -170,16 +162,20 @@ class DatabaseHelper {
       'sort_order': maxOrder + 1,
     });
   }
+
   // 2. 플레이리스트에 담긴 곡 목록 조회 (JOIN 활용)
   Future<List<Song>> getSongsInPlaylist(int playlistId) async {
     final db = await database;
 
-    final maps = await db.rawQuery('''
+    final maps = await db.rawQuery(
+      '''
     SELECT s.* FROM songs s
     INNER JOIN playlist_songs ps ON s.id = ps.song_id
     WHERE ps.playlist_id = ?
     ORDER BY ps.sort_order ASC
-  ''', [playlistId]);
+  ''',
+      [playlistId],
+    );
 
     return maps.map((map) => Song.fromMap(map)).toList();
   }
@@ -193,6 +189,7 @@ class DatabaseHelper {
       whereArgs: [playlistId, songId],
     );
   }
+
   //순서저장메서드추가
   Future<void> updatePlaylistSongOrder(int playlistId, List<Song> songs) async {
     final db = await database;

@@ -1,14 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:music_player/Provider/ThemeProvider.dart';
-import 'package:music_player/Utils/AppTheme.dart';
-import 'package:provider/provider.dart';
+import 'package:music_player/index/view_essential_index.dart';
 
-class SettingsPage extends StatelessWidget {
-  const SettingsPage({super.key});
+class SettingPage extends StatelessWidget {
+  const SettingPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = context.watch<ThemeProvider>();
+    final themeProvider = context.watch<DarkModeViewModel>();
     final isDark = themeProvider.isDarkMode;
     final theme = AppTheme(isDark);
 
@@ -18,8 +15,8 @@ class SettingsPage extends StatelessWidget {
 
       appBar: AppBar(
         title: Text(
-            '설정',
-            style: TextStyle(color: theme.text, fontWeight: FontWeight.bold)
+          '설정',
+          style: TextStyle(color: theme.text, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         // 💡 2. 앱바 배경색도 강제 주입
@@ -58,11 +55,15 @@ class SettingsPage extends StatelessWidget {
             ),
           ),
 
-          Divider(color: isDark ? Colors.white10 : Colors.grey[300]), // 구분선 색상도 대응
+          Divider(color: isDark ? Colors.white10 : Colors.grey[300]),
+          // 구분선 색상도 대응
 
           // ℹ️ 앱 정보 (예시)
           ListTile(
-            leading: Icon(Icons.info_outline, color: isDark ? Colors.white70 : Colors.black54),
+            leading: Icon(
+              Icons.info_outline,
+              color: isDark ? Colors.white70 : Colors.black54,
+            ),
             title: Text(
               '앱 버전',
               style: TextStyle(color: theme.text, fontWeight: FontWeight.bold),

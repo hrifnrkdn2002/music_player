@@ -1,18 +1,15 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:music_player/Models/Song.dart';
-import 'package:music_player/Services/AudioPlayerHandler.dart';
+import 'package:music_player/model/song.dart';
+import 'package:music_player/service/audio_player_handler.dart';
 
-enum RepeatModeState {
-  off,
-  one,
-  all,
-}
+enum RepeatModeState { off, one, all }
 
-class MusicProvider extends ChangeNotifier {
+class MusicViewModel extends ChangeNotifier {
   final AudioPlayerHandler _handler;
 
   StreamSubscription<bool>? _playingSubscription;
@@ -31,12 +28,16 @@ class MusicProvider extends ChangeNotifier {
   RepeatModeState _repeatModeState = RepeatModeState.off;
 
   AudioPlayer get player => _handler.player;
+
   bool get isPlaying => _handler.player.playing;
+
   List<Song> get playlist => _playlist;
+
   bool get isShuffleOn => _isShuffleOn;
+
   RepeatModeState get repeatModeState => _repeatModeState;
 
-  MusicProvider(this._handler) {
+  MusicViewModel(this._handler) {
     // 잠금화면/알림창에서 오는 명령 콜백 등록
     _handler.onSkipToNext = playNext;
     _handler.onSkipToPrevious = playPrevious;
@@ -48,8 +49,9 @@ class MusicProvider extends ChangeNotifier {
       notifyListeners();
     });
 
-    _playerStateSubscription =
-        _handler.player.playerStateStream.listen((state) async {
+    _playerStateSubscription = _handler.player.playerStateStream.listen((
+      state,
+    ) async {
       if (state.processingState == ProcessingState.completed) {
         await _handleSongComplete();
       }
@@ -105,8 +107,9 @@ class MusicProvider extends ChangeNotifier {
     _lastClickTime = now;
 
     try {
-      final currentIndex = _playlist
-          .indexWhere((song) => song.id != null && song.id == currentSong?.id);
+      final currentIndex = _playlist.indexWhere(
+        (song) => song.id != null && song.id == currentSong?.id,
+      );
 
       if (currentIndex != -1 && currentIndex < _playlist.length - 1) {
         await playSong(_playlist[currentIndex + 1]);
@@ -131,8 +134,9 @@ class MusicProvider extends ChangeNotifier {
     _lastClickTime = now;
 
     try {
-      final currentIndex = _playlist
-          .indexWhere((song) => song.id != null && song.id == currentSong?.id);
+      final currentIndex = _playlist.indexWhere(
+        (song) => song.id != null && song.id == currentSong?.id,
+      );
 
       if (currentIndex > 0) {
         await playSong(_playlist[currentIndex - 1]);
@@ -184,7 +188,9 @@ class MusicProvider extends ChangeNotifier {
       final shuffled = List<Song>.from(_playlist);
       shuffled.shuffle();
       if (current != null) {
-        shuffled.removeWhere((song) => song.id != null && song.id == current.id);
+        shuffled.removeWhere(
+          (song) => song.id != null && song.id == current.id,
+        );
         shuffled.insert(0, current);
       }
       _playlist = shuffled;
@@ -255,10 +261,7 @@ class MusicProvider extends ChangeNotifier {
 
   /// 핸들러(알림/잠금화면)의 재생 상태를 현재 앱 상태와 동기화
   void _syncHandlerState() {
-    _handler.pushState(
-      repeatMode: _repeatModeState,
-      shuffleOn: _isShuffleOn,
-    );
+    _handler.pushState(repeatMode: _repeatModeState, shuffleOn: _isShuffleOn);
   }
 
   @override

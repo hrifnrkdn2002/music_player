@@ -1,14 +1,9 @@
-import 'package:flutter/material.dart';
-import 'package:music_player/Provider/ThemeProvider.dart';
-import 'package:music_player/Utils/AppTheme.dart';
-import 'package:provider/provider.dart';
-
-import 'package:music_player/DB/DB_Provider.dart';
-import 'package:music_player/Models/Song.dart';
-import 'package:music_player/Provider/MusicProvider.dart';
-import 'package:music_player/UI/AddSongToPlaylistPage.dart';
-import 'package:music_player/UI/PlayerPage.dart';
-import 'package:music_player/UI/mini_player.dart';
+import 'package:music_player/index/view_essential_index.dart';
+import 'package:music_player/index/view_model_index.dart';
+import 'package:music_player/model/song.dart';
+import 'package:music_player/view/add_song_to_playlist_page.dart';
+import 'package:music_player/view/mini_player.dart';
+import 'package:music_player/view/player_page.dart';
 
 class PlaylistDetailPage extends StatefulWidget {
   final int playlistId;
@@ -43,8 +38,10 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
     });
 
     try {
-      final dbProvider = context.read<DB_Provider>();
-      final loadedSongs = await dbProvider.getSongsInPlaylist(widget.playlistId);
+      final dbProvider = context.read<DatabaseViewModel>();
+      final loadedSongs = await dbProvider.getSongsInPlaylist(
+        widget.playlistId,
+      );
 
       if (!mounted) return;
       setState(() {
@@ -85,7 +82,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
   Future<void> _deleteSelectedSongs() async {
     if (_selectedSongIds.isEmpty) return;
 
-    final dbProvider = context.read<DB_Provider>();
+    final dbProvider = context.read<DatabaseViewModel>();
 
     for (final songId in _selectedSongIds) {
       await dbProvider.removeSongFromPlaylist(widget.playlistId, songId);
@@ -105,7 +102,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
     if (_isSelectionMode) return;
     if (index < 0 || index >= _songs.length) return;
 
-    final musicProvider = context.read<MusicProvider>();
+    final musicProvider = context.read<MusicViewModel>();
 
     try {
       await musicProvider.playPlaylist(_songs, index);
@@ -114,19 +111,15 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
 
       Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (_) => const PlayerPage(),
-        ),
+        MaterialPageRoute(builder: (_) => const PlayerPage()),
       );
     } catch (e) {
       debugPrint('플레이리스트 곡 재생 오류: $e');
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('곡 재생 중 오류가 발생했습니다.'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('곡 재생 중 오류가 발생했습니다.')));
     }
   }
 
@@ -167,11 +160,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
           borderRadius: BorderRadius.circular(6),
         ),
         child: isSelected
-            ? Icon(
-          Icons.check,
-          size: 18,
-          color: activeColor,
-        )
+            ? Icon(Icons.check, size: 18, color: activeColor)
             : null,
       ),
     );
@@ -198,23 +187,17 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
         onTap: () => _handleSongTap(index),
         leading: _isSelectionMode
             ? _buildCheckBox(
-          song: song,
-          activeColor: activeColor,
-          inactiveColor: inactiveColor,
-        )
+                song: song,
+                activeColor: activeColor,
+                inactiveColor: inactiveColor,
+              )
             : ReorderableDragStartListener(
-          index: index,
-          child: Icon(
-            Icons.drag_handle,
-            color: subtitleColor,
-          ),
-        ),
+                index: index,
+                child: Icon(Icons.drag_handle, color: subtitleColor),
+              ),
         title: Text(
           song.title,
-          style: TextStyle(
-            color: textColor,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(color: textColor, fontWeight: FontWeight.w600),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
@@ -224,10 +207,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
             song.artist?.trim().isNotEmpty == true
                 ? song.artist!
                 : '알 수 없는 아티스트',
-            style: TextStyle(
-              color: subtitleColor,
-              fontSize: 12,
-            ),
+            style: TextStyle(color: subtitleColor, fontSize: 12),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -249,7 +229,10 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
     });
 
     try {
-      await context.read<DB_Provider>().updatePlaylistSongOrder(widget.playlistId, _songs);
+      await context.read<DatabaseViewModel>().updatePlaylistSongOrder(
+        widget.playlistId,
+        _songs,
+      );
     } catch (e) {
       debugPrint('순서 저장 메서드가 아직 없습니다: $e');
     }
@@ -257,7 +240,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = context.watch<ThemeProvider>().isDarkMode;
+    final isDark = context.watch<DarkModeViewModel>().isDarkMode;
 
     final theme = AppTheme(isDark);
     final tileColor = isDark ? const Color(0xFF1C1C1C) : Colors.grey[100]!;
@@ -283,10 +266,7 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
             const SizedBox(height: 2),
             Text(
               '곡 ${_songs.length}개',
-              style: TextStyle(
-                fontSize: 12,
-                color: theme.subtitle,
-              ),
+              style: TextStyle(fontSize: 12, color: theme.subtitle),
             ),
           ],
         ),
@@ -324,57 +304,57 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
                   ? const Center(child: CircularProgressIndicator())
                   : _songs.isEmpty
                   ? ListView(
-                children: [
-                  SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.25,
-                  ),
-                  Center(
-                    child: Column(
                       children: [
-                        Icon(
-                          Icons.queue_music,
-                          size: 56,
-                          color: theme.subtitle,
+                        SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.25,
                         ),
-                        const SizedBox(height: 12),
-                        Text(
-                          '플레이리스트에 담긴 곡이 없습니다.',
-                          style: TextStyle(
-                            color: theme.subtitle,
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '우측 상단 + 버튼으로 곡을 추가해보세요.',
-                          style: TextStyle(
-                            color: theme.subtitle,
-                            fontSize: 13,
+                        Center(
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.queue_music,
+                                size: 56,
+                                color: theme.subtitle,
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                '플레이리스트에 담긴 곡이 없습니다.',
+                                style: TextStyle(
+                                  color: theme.subtitle,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                '우측 상단 + 버튼으로 곡을 추가해보세요.',
+                                style: TextStyle(
+                                  color: theme.subtitle,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
-                    ),
-                  ),
-                ],
-              )
+                    )
                   : ReorderableListView.builder(
-                padding: const EdgeInsets.only(top: 10, bottom: 10),
-                buildDefaultDragHandles: false,
-                itemCount: _songs.length,
-                onReorder: _onReorder,
-                itemBuilder: (context, index) {
-                  final song = _songs[index];
-                  return _buildSongTile(
-                    song: song,
-                    index: index,
-                    tileColor: tileColor,
-                    textColor: textColor,
-                    subtitleColor: subtitleColor,
-                    activeColor: activeColor,
-                    inactiveColor: inactiveBorderColor,
-                  );
-                },
-              ),
+                      padding: const EdgeInsets.only(top: 10, bottom: 10),
+                      buildDefaultDragHandles: false,
+                      itemCount: _songs.length,
+                      onReorder: _onReorder,
+                      itemBuilder: (context, index) {
+                        final song = _songs[index];
+                        return _buildSongTile(
+                          song: song,
+                          index: index,
+                          tileColor: tileColor,
+                          textColor: textColor,
+                          subtitleColor: subtitleColor,
+                          activeColor: activeColor,
+                          inactiveColor: inactiveBorderColor,
+                        );
+                      },
+                    ),
             ),
           ),
           const MiniPlayer(),

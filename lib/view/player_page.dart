@@ -1,10 +1,6 @@
-import 'package:flutter/material.dart';
-import 'package:music_player/Provider/MusicProvider.dart';
-import 'package:music_player/Provider/ThemeProvider.dart';
-import 'package:music_player/Utils/AppTheme.dart';
-import 'package:music_player/Utils/DurationFormatter.dart';
-import 'package:provider/provider.dart';
-import 'package:just_audio/just_audio.dart';
+import 'package:music_player/index/view_essential_index.dart';
+import 'package:music_player/utils/duration_formatter.dart';
+import 'package:music_player/view_model/music_view_model.dart';
 
 class PlayerPage extends StatefulWidget {
   const PlayerPage({super.key});
@@ -44,7 +40,7 @@ class _PlayerPageState extends State<PlayerPage> {
 
   @override
   Widget build(BuildContext context) {
-    final musicProvider = context.watch<MusicProvider>();
+    final musicProvider = context.watch<MusicViewModel>();
     final currentSong = musicProvider.currentSong;
     final player = musicProvider.player;
 
@@ -61,7 +57,7 @@ class _PlayerPageState extends State<PlayerPage> {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
-    final isDark = context.watch<ThemeProvider>().isDarkMode;
+    final isDark = context.watch<DarkModeViewModel>().isDarkMode;
     final theme = AppTheme(isDark);
 
     if (currentSong == null) {
@@ -72,7 +68,9 @@ class _PlayerPageState extends State<PlayerPage> {
           backgroundColor: theme.background,
           foregroundColor: theme.text,
         ),
-        body: Center(child: Text('재생 중인 곡이 없습니다.', style: TextStyle(color: theme.text))),
+        body: Center(
+          child: Text('재생 중인 곡이 없습니다.', style: TextStyle(color: theme.text)),
+        ),
       );
     }
 
@@ -100,7 +98,9 @@ class _PlayerPageState extends State<PlayerPage> {
                     width: screenWidth * 0.75,
                     height: screenWidth * 0.75,
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1C1C1C) : Colors.grey[300],
+                      color: isDark
+                          ? const Color(0xFF1C1C1C)
+                          : Colors.grey[300],
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Icon(
@@ -164,9 +164,15 @@ class _PlayerPageState extends State<PlayerPage> {
                     children: [
                       SliderTheme(
                         data: SliderTheme.of(context).copyWith(
-                          activeTrackColor: isDark ? Colors.purpleAccent : Theme.of(context).primaryColor,
-                          inactiveTrackColor: isDark ? Colors.white12 : Colors.grey[300],
-                          thumbColor: isDark ? Colors.purpleAccent : Theme.of(context).primaryColor,
+                          activeTrackColor: isDark
+                              ? Colors.purpleAccent
+                              : Theme.of(context).primaryColor,
+                          inactiveTrackColor: isDark
+                              ? Colors.white12
+                              : Colors.grey[300],
+                          thumbColor: isDark
+                              ? Colors.purpleAccent
+                              : Theme.of(context).primaryColor,
                         ),
                         child: Slider(
                           value: _dragValue,
@@ -190,12 +196,20 @@ class _PlayerPageState extends State<PlayerPage> {
                         ),
                       ),
                       Padding(
-                        padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: screenWidth * 0.05,
+                        ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(DurationFormatter.format(position), style: TextStyle(color: theme.subtitle)),
-                            Text(DurationFormatter.format(duration), style: TextStyle(color: theme.subtitle)),
+                            Text(
+                              DurationFormatter.format(position),
+                              style: TextStyle(color: theme.subtitle),
+                            ),
+                            Text(
+                              DurationFormatter.format(duration),
+                              style: TextStyle(color: theme.subtitle),
+                            ),
                           ],
                         ),
                       ),
@@ -256,7 +270,9 @@ class _PlayerPageState extends State<PlayerPage> {
                                     ? Icons.pause_circle_filled
                                     : Icons.play_circle_filled,
                                 size: screenWidth * 0.18,
-                                color: isDark ? Colors.purpleAccent : Theme.of(context).primaryColor,
+                                color: isDark
+                                    ? Colors.purpleAccent
+                                    : Theme.of(context).primaryColor,
                               ),
                             ),
                             IconButton(

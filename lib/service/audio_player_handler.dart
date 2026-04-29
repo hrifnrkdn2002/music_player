@@ -1,7 +1,7 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:music_player/Models/Song.dart';
-import 'package:music_player/Provider/MusicProvider.dart';
+import 'package:music_player/model/song.dart';
+import 'package:music_player/view_model/music_view_model.dart';
 
 class AudioPlayerHandler extends BaseAudioHandler with SeekHandler {
   final AudioPlayer _player = AudioPlayer();
@@ -65,12 +65,14 @@ class AudioPlayerHandler extends BaseAudioHandler with SeekHandler {
       mediaItem.add(null);
       return;
     }
-    mediaItem.add(MediaItem(
-      id: song.filePath,
-      title: song.title,
-      artist: song.artist ?? '알 수 없는 아티스트',
-      duration: _player.duration,
-    ));
+    mediaItem.add(
+      MediaItem(
+        id: song.filePath,
+        title: song.title,
+        artist: song.artist ?? '알 수 없는 아티스트',
+        duration: _player.duration,
+      ),
+    );
   }
 
   /// 재생 상태(repeat/shuffle 포함)를 OS 알림/잠금화면에 반영
@@ -86,10 +88,7 @@ class AudioPlayerHandler extends BaseAudioHandler with SeekHandler {
   RepeatModeState _lastRepeatMode = RepeatModeState.off;
   bool _lastShuffleOn = false;
 
-  void _pushPlaybackState({
-    RepeatModeState? repeatMode,
-    bool? shuffleOn,
-  }) {
+  void _pushPlaybackState({RepeatModeState? repeatMode, bool? shuffleOn}) {
     final repeat = repeatMode ?? _lastRepeatMode;
     final shuffle = shuffleOn ?? _lastShuffleOn;
     _lastRepeatMode = repeat;
@@ -118,25 +117,27 @@ class AudioPlayerHandler extends BaseAudioHandler with SeekHandler {
       ),
     ];
 
-    playbackState.add(PlaybackState(
-      controls: controls,
-      systemActions: const {
-        MediaAction.seek,
-        MediaAction.setRepeatMode,
-        MediaAction.setShuffleMode,
-      },
-      // 알림 컴팩트: prev(1), play/pause(2), next(3)
-      androidCompactActionIndices: const [1, 2, 3],
-      processingState: _toAudioProcessingState(_player.processingState),
-      playing: playing,
-      updatePosition: _player.position,
-      bufferedPosition: _player.bufferedPosition,
-      speed: _player.speed,
-      repeatMode: _toAudioServiceRepeatMode(repeat),
-      shuffleMode: shuffle
-          ? AudioServiceShuffleMode.all
-          : AudioServiceShuffleMode.none,
-    ));
+    playbackState.add(
+      PlaybackState(
+        controls: controls,
+        systemActions: const {
+          MediaAction.seek,
+          MediaAction.setRepeatMode,
+          MediaAction.setShuffleMode,
+        },
+        // 알림 컴팩트: prev(1), play/pause(2), next(3)
+        androidCompactActionIndices: const [1, 2, 3],
+        processingState: _toAudioProcessingState(_player.processingState),
+        playing: playing,
+        updatePosition: _player.position,
+        bufferedPosition: _player.bufferedPosition,
+        speed: _player.speed,
+        repeatMode: _toAudioServiceRepeatMode(repeat),
+        shuffleMode: shuffle
+            ? AudioServiceShuffleMode.all
+            : AudioServiceShuffleMode.none,
+      ),
+    );
   }
 
   AudioProcessingState _toAudioProcessingState(ProcessingState state) {

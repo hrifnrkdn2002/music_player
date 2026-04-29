@@ -1,14 +1,14 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
+import 'package:music_player/service/audio_player_handler.dart';
+import 'package:music_player/view/setting_page.dart';
+import 'package:music_player/view/download_page.dart';
+import 'package:music_player/view/home_page.dart';
+import 'package:music_player/view/playlist_page.dart';
+import 'package:music_player/view_model/dark_mode_view_model.dart';
+import 'package:music_player/view_model/database_view_model.dart';
+import 'package:music_player/view_model/music_view_model.dart';
 import 'package:provider/provider.dart';
-import 'package:music_player/Provider/MusicProvider.dart';
-import 'package:music_player/Provider/ThemeProvider.dart';
-import 'package:music_player/Services/AudioPlayerHandler.dart';
-import 'package:music_player/UI/HomePage.dart';
-import 'package:music_player/UI/PlaylistPage.dart';
-import 'package:music_player/UI/SettingsPage.dart';
-import 'package:music_player/UI/DownloadPage.dart';
-import 'package:music_player/DB/DB_Provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,22 +16,23 @@ Future<void> main() async {
   late AudioPlayerHandler audioHandler;
 
   try {
-    audioHandler = await AudioService.init(
-      builder: () => AudioPlayerHandler(),
-      config: const AudioServiceConfig(
-        androidNotificationChannelId: 'com.example.music_player.channel',
-        androidNotificationChannelName: '음악 플레이어',
-        androidNotificationIcon: 'mipmap/ic_launcher',
-        androidShowNotificationBadge: true,
-        androidStopForegroundOnPause: true,
-      ),
-    ).timeout(
-      const Duration(seconds: 10),
-      onTimeout: () {
-        debugPrint('[AudioService] init timeout — 서비스 연결 실패');
-        throw Exception('AudioService init timed out');
-      },
-    );
+    audioHandler =
+        await AudioService.init(
+          builder: () => AudioPlayerHandler(),
+          config: const AudioServiceConfig(
+            androidNotificationChannelId: 'com.example.music_player.channel',
+            androidNotificationChannelName: '음악 플레이어',
+            androidNotificationIcon: 'mipmap/ic_launcher',
+            androidShowNotificationBadge: true,
+            androidStopForegroundOnPause: true,
+          ),
+        ).timeout(
+          const Duration(seconds: 10),
+          onTimeout: () {
+            debugPrint('[AudioService] init timeout — 서비스 연결 실패');
+            throw Exception('AudioService init timed out');
+          },
+        );
   } catch (e, stack) {
     debugPrint('[AudioService] init 오류: $e');
     debugPrint(stack.toString());
@@ -42,9 +43,9 @@ Future<void> main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => MusicProvider(audioHandler)),
-        ChangeNotifierProvider(create: (_) => DB_Provider()),
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => MusicViewModel(audioHandler)),
+        ChangeNotifierProvider(create: (_) => DatabaseViewModel()),
+        ChangeNotifierProvider(create: (_) => DarkModeViewModel()),
       ],
       child: const MyApp(),
     ),
@@ -56,7 +57,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = context.watch<ThemeProvider>();
+    final themeProvider = context.watch<DarkModeViewModel>();
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -115,7 +116,7 @@ class _MainPageState extends State<MainPage> {
     const HomePage(),
     const PlaylistPage(),
     const DownloadPage(),
-    const SettingsPage(),
+    const SettingPage(),
   ];
 
   @override
@@ -138,7 +139,10 @@ class _MainPageState extends State<MainPage> {
         },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: '홈'),
-          BottomNavigationBarItem(icon: Icon(Icons.queue_music), label: '플레이리스트'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.queue_music),
+            label: '플레이리스트',
+          ),
           BottomNavigationBarItem(icon: Icon(Icons.download), label: '다운로드'),
           BottomNavigationBarItem(icon: Icon(Icons.settings), label: '설정'),
         ],

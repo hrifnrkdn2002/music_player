@@ -22,7 +22,7 @@ lib/
   DB/
     DatabaseHelper.dart            # SQLite CRUD operations
     DB_Provider.dart               # DB access abstraction
-  Models/
+  Model/
     Song.dart                      # Song data model
   Provider/
     MusicProvider.dart             # Playback state & logic

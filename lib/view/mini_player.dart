@@ -1,18 +1,14 @@
-import 'package:flutter/material.dart';
-import 'package:music_player/Provider/MusicProvider.dart';
-import 'package:music_player/UI/PlayerPage.dart';
-import 'package:music_player/Provider/ThemeProvider.dart';
-import 'package:music_player/Utils/AppTheme.dart';
-import 'package:music_player/Utils/DurationFormatter.dart';
-import 'package:provider/provider.dart';
-import 'package:just_audio/just_audio.dart';
+import 'package:music_player/index/view_essential_index.dart';
+import 'package:music_player/utils/duration_formatter.dart';
+import 'package:music_player/view/player_page.dart';
+import 'package:music_player/view_model/music_view_model.dart';
 
 class MiniPlayer extends StatelessWidget {
   const MiniPlayer({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final musicProvider = context.watch<MusicProvider>();
+    final musicProvider = context.watch<MusicViewModel>();
     final currentSong = musicProvider.currentSong;
 
     if (currentSong == null) {
@@ -21,7 +17,7 @@ class MiniPlayer extends StatelessWidget {
 
     final player = musicProvider.player;
 
-    final isDark = context.watch<ThemeProvider>().isDarkMode;
+    final isDark = context.watch<DarkModeViewModel>().isDarkMode;
     final theme = AppTheme(isDark);
 
     return Material(
@@ -30,16 +26,16 @@ class MiniPlayer extends StatelessWidget {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (_) => const PlayerPage(),
-            ),
+            MaterialPageRoute(builder: (_) => const PlayerPage()),
           );
         },
         child: Container(
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
           decoration: BoxDecoration(
             border: Border(
-              top: BorderSide(color: isDark ? Colors.white10 : Colors.grey[300]!),
+              top: BorderSide(
+                color: isDark ? Colors.white10 : Colors.grey[300]!,
+              ),
             ),
           ),
           child: Column(
@@ -60,7 +56,10 @@ class MiniPlayer extends StatelessWidget {
                       children: [
                         Text(
                           currentSong.title,
-                          style: TextStyle(fontWeight: FontWeight.bold, color: theme.text),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: theme.text,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -111,11 +110,21 @@ class MiniPlayer extends StatelessWidget {
                       SliderTheme(
                         data: SliderTheme.of(context).copyWith(
                           trackHeight: 2,
-                          thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 4),
-                          overlayShape: const RoundSliderOverlayShape(overlayRadius: 10),
-                          activeTrackColor: isDark ? Colors.purpleAccent : Theme.of(context).primaryColor,
-                          inactiveTrackColor: isDark ? Colors.white12 : Colors.grey[300],
-                          thumbColor: isDark ? Colors.purpleAccent : Theme.of(context).primaryColor,
+                          thumbShape: const RoundSliderThumbShape(
+                            enabledThumbRadius: 4,
+                          ),
+                          overlayShape: const RoundSliderOverlayShape(
+                            overlayRadius: 10,
+                          ),
+                          activeTrackColor: isDark
+                              ? Colors.purpleAccent
+                              : Theme.of(context).primaryColor,
+                          inactiveTrackColor: isDark
+                              ? Colors.white12
+                              : Colors.grey[300],
+                          thumbColor: isDark
+                              ? Colors.purpleAccent
+                              : Theme.of(context).primaryColor,
                         ),
                         child: Slider(
                           value: position.inMilliseconds.toDouble().clamp(
@@ -139,11 +148,17 @@ class MiniPlayer extends StatelessWidget {
                           children: [
                             Text(
                               DurationFormatter.format(position),
-                              style: TextStyle(fontSize: 12, color: theme.subtitle),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: theme.subtitle,
+                              ),
                             ),
                             Text(
                               DurationFormatter.format(duration),
-                              style: TextStyle(fontSize: 12, color: theme.subtitle),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: theme.subtitle,
+                              ),
                             ),
                           ],
                         ),
