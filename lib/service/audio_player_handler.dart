@@ -3,22 +3,33 @@ import 'package:just_audio/just_audio.dart';
 import 'package:music_player/model/song.dart';
 import 'package:music_player/view_model/music_view_model.dart';
 
+//BaseAudioHandler를 상속받은 클래스는 AudioHandler의 역할을 할 수 있다
+//AduioHandler는 앱과 OS를 연결하는 역할을 한다. OS와 연결하기 위해서 audioplayer객체는 여기서 생성한다
+//SeekHandler는 재생바기능추가를 위한 mixin 클래스이다.
 class AudioPlayerHandler extends BaseAudioHandler with SeekHandler {
+  //AudioHandler에서 앱과 OS를 연동시켜야하므로 여기서 오디오엔진객체를 선언후 초기화했음
   final AudioPlayer _player = AudioPlayer();
 
-  // MusicProvider에서 주입하는 콜백
+  // MusicViewModel의 생성자에서 주입하는 콜백함수
+  // 변수이름과 반환값 매개변수만 선언한 상태이다.
   Future<void> Function()? onSkipToNext;
   Future<void> Function()? onSkipToPrevious;
   Future<void> Function(AudioServiceRepeatMode)? onSetRepeatMode;
   Future<void> Function(AudioServiceShuffleMode)? onSetShuffleMode;
 
+  // AudioPlayer객체의 getter메서드
   AudioPlayer get player => _player;
 
+  //AudioPlayerHandler의 생성자이다.
+  //
   AudioPlayerHandler() {
     // 재생 상태 변경 시 알림/잠금화면 갱신
     _player.playingStream.listen((_) => _pushPlaybackState());
+    // 재생 진행도 변경시 알림/잠금화면 갱신
     _player.processingStateStream.listen((_) => _pushPlaybackState());
+    // 재생 현위치 변경 시 알림/잠금화면 갱신
     _player.positionStream.listen((_) => _pushPlaybackState());
+    // 재생 총 길이 변경 시 알림/잠금화면 갱신
     _player.durationStream.listen((duration) {
       final current = mediaItem.value;
       if (current != null && duration != null) {
@@ -94,6 +105,7 @@ class AudioPlayerHandler extends BaseAudioHandler with SeekHandler {
     _lastRepeatMode = repeat;
     _lastShuffleOn = shuffle;
 
+    //playing은 bool 타입
     final playing = _player.playing;
 
     // 알림창 확장 뷰 5버튼: [repeat, prev, play/pause, next, shuffle]

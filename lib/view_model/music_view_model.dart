@@ -7,8 +7,10 @@ import 'package:just_audio/just_audio.dart';
 import 'package:music_player/model/song.dart';
 import 'package:music_player/service/audio_player_handler.dart';
 
+// 현재 반복버튼 터치시 한 곡 반복->전체 반복-> 반복 안함 순임.
 enum RepeatModeState { off, one, all }
 
+// 옵저버패턴을 적용시키기위해 ChangeNofier를 상속받음.
 class MusicViewModel extends ChangeNotifier {
   final AudioPlayerHandler _handler;
 
@@ -45,13 +47,19 @@ class MusicViewModel extends ChangeNotifier {
     _handler.onSetShuffleMode = _handleShuffleModeFromOS;
 
     _playingSubscription = _handler.player.playingStream.listen((_) {
+      //플레이어엔진의 데이터와 뷰모델의 데이터를 동기화하는 함수
       _syncHandlerState();
+      //동기화하고 알림
       notifyListeners();
     });
 
+    //PlayerState 객체를 반환하는 스트림을 구독
+    //PlayerState는 playing과 processingState를 포함하고 있음
+    //TODO: StreamSubscription은 view_model이 파괴될 때 반드시 cancel해줘야함
     _playerStateSubscription = _handler.player.playerStateStream.listen((
       state,
     ) async {
+      //만약 진행상태가 완료라면 곡완료함수를 실행
       if (state.processingState == ProcessingState.completed) {
         await _handleSongComplete();
       }
@@ -77,7 +85,7 @@ class MusicViewModel extends ChangeNotifier {
       currentSong = song;
       isLoading = true;
       notifyListeners();
-
+      //현재 상태로는 재생 중인 곡 선택 시 다시 재생할 가능성 매우 높음
       await _handler.player.stop();
       await _handler.player.setFilePath(song.filePath);
       await _handler.player.play();
@@ -97,7 +105,6 @@ class MusicViewModel extends ChangeNotifier {
   // ⏭️ 다음 곡 재생
   Future<void> playNext() async {
     if (_playlist.isEmpty) return;
-
     final now = DateTime.now();
     if (_lastClickTime != null &&
         now.difference(_lastClickTime!) < const Duration(milliseconds: 500)) {
@@ -165,6 +172,8 @@ class MusicViewModel extends ChangeNotifier {
     }
   }
 
+  //repeatModeState를 오디오엔진이 알게 하기 위함
+  //TODO: 현재 상태는 반복모드 코드가 중복된 상황임 수동으로 직접 구현할 지 엔진자체 기능을 사용할 지 정할 것
   Future<void> _applyLoopMode() async {
     if (_repeatModeState == RepeatModeState.one) {
       await _handler.player.setLoopMode(LoopMode.one);

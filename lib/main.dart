@@ -17,6 +17,8 @@ Future<void> main() async {
 
   try {
     audioHandler =
+        //BaseAudioHandler를 상송받은 AudioPlayerHandler의 인스턴스 audioHandler를 OS에 등록하기 위해
+        //AudioService.init 함수를 사용함
         await AudioService.init(
           builder: () => AudioPlayerHandler(),
           config: const AudioServiceConfig(
