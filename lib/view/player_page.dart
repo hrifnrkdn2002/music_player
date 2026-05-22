@@ -1,15 +1,29 @@
+import 'package:music_player/get_it.dart';
 import 'package:music_player/index/view_essential_index.dart';
+import 'package:music_player/interface.dart';
 import 'package:music_player/utils/duration_formatter.dart';
-import 'package:music_player/view_model/music_view_model.dart';
+import 'package:music_player/view_model/player_view_model.dart';
 
-class PlayerPage extends StatefulWidget {
+class PlayerPage extends StatelessWidget {
   const PlayerPage({super.key});
 
   @override
-  State<PlayerPage> createState() => _PlayerPageState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => PlayerViewModel(locator<MusicServiceInterface>()),
+      child: const _PlayerPageBody(),
+    );
+  }
 }
 
-class _PlayerPageState extends State<PlayerPage> {
+class _PlayerPageBody extends StatefulWidget {
+  const _PlayerPageBody();
+
+  @override
+  State<_PlayerPageBody> createState() => _PlayerPageBodyState();
+}
+
+class _PlayerPageBodyState extends State<_PlayerPageBody> {
   bool _isDragging = false;
   double _dragValue = 0.0;
 
@@ -40,47 +54,47 @@ class _PlayerPageState extends State<PlayerPage> {
 
   @override
   Widget build(BuildContext context) {
-    final musicProvider = context.watch<MusicViewModel>();
-    final currentSong = musicProvider.currentSong;
-    final player = musicProvider.player;
+    final vm = context.watch<PlayerViewModel>();
+    final currentSong = vm.currentSong;
 
-    final error = musicProvider.playError;
+    final error = vm.playError;
     if (error != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(error), backgroundColor: Colors.red),
         );
-        musicProvider.playError = null;
+        vm.clearError();
       });
     }
 
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
-    final isDark = context.watch<DarkModeViewModel>().isDarkMode;
-    final theme = AppTheme(isDark);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
+    final background = Theme.of(context).scaffoldBackgroundColor;
 
     if (currentSong == null) {
       return Scaffold(
-        backgroundColor: theme.background,
+        backgroundColor: background,
         appBar: AppBar(
           title: const Text('재생 중'),
-          backgroundColor: theme.background,
-          foregroundColor: theme.text,
+          backgroundColor: background,
+          foregroundColor: colorScheme.onSurface,
         ),
         body: Center(
-          child: Text('재생 중인 곡이 없습니다.', style: TextStyle(color: theme.text)),
+          child: Text('재생 중인 곡이 없습니다.', style: TextStyle(color: colorScheme.onSurface)),
         ),
       );
     }
 
     return Scaffold(
-      backgroundColor: theme.background, // 💡 배경색 적용
+      backgroundColor: background,
       appBar: AppBar(
         title: const Text('재생 중'),
         centerTitle: true,
-        backgroundColor: theme.background,
-        foregroundColor: theme.text,
+        backgroundColor: background,
+        foregroundColor: colorScheme.onSurface,
         leading: IconButton(
           icon: const Icon(Icons.keyboard_arrow_down),
           onPressed: () => Navigator.pop(context),
@@ -124,7 +138,7 @@ class _PlayerPageState extends State<PlayerPage> {
                       style: TextStyle(
                         fontSize: (screenWidth * 0.05).clamp(14.0, 22.0),
                         fontWeight: FontWeight.bold,
-                        color: theme.text, // 💡 텍스트 색상
+                        color: colorScheme.onSurface,
                       ),
                       textAlign: TextAlign.center,
                       maxLines: 2,
@@ -135,7 +149,7 @@ class _PlayerPageState extends State<PlayerPage> {
                       currentSong.artist ?? '알 수 없는 아티스트',
                       style: TextStyle(
                         fontSize: (screenWidth * 0.035).clamp(11.0, 15.0),
-                        color: theme.subtitle, // 💡 서브타이틀 색상
+                        color: colorScheme.onSurfaceVariant,
                       ),
                       textAlign: TextAlign.center,
                       maxLines: 1,
@@ -148,10 +162,10 @@ class _PlayerPageState extends State<PlayerPage> {
               SizedBox(height: screenHeight * 0.04),
 
               StreamBuilder<Duration>(
-                stream: player.positionStream,
+                stream: vm.positionStream,
                 builder: (context, snapshot) {
                   final position = snapshot.data ?? Duration.zero;
-                  final duration = player.duration ?? Duration.zero;
+                  final duration = vm.duration ?? Duration.zero;
 
                   if (!_isDragging) {
                     _dragValue = position.inMilliseconds.toDouble().clamp(
@@ -164,15 +178,9 @@ class _PlayerPageState extends State<PlayerPage> {
                     children: [
                       SliderTheme(
                         data: SliderTheme.of(context).copyWith(
-                          activeTrackColor: isDark
-                              ? Colors.purpleAccent
-                              : Theme.of(context).primaryColor,
-                          inactiveTrackColor: isDark
-                              ? Colors.white12
-                              : Colors.grey[300],
-                          thumbColor: isDark
-                              ? Colors.purpleAccent
-                              : Theme.of(context).primaryColor,
+                          activeTrackColor: colorScheme.primary,
+                          inactiveTrackColor: isDark ? Colors.white12 : Colors.grey[300],
+                          thumbColor: colorScheme.primary,
                         ),
                         child: Slider(
                           value: _dragValue,
@@ -186,7 +194,7 @@ class _PlayerPageState extends State<PlayerPage> {
                             });
                           },
                           onChangeEnd: (newValue) async {
-                            await player.seek(
+                            await vm.seek(
                               Duration(milliseconds: newValue.toInt()),
                             );
                             setState(() {
@@ -204,11 +212,11 @@ class _PlayerPageState extends State<PlayerPage> {
                           children: [
                             Text(
                               DurationFormatter.format(position),
-                              style: TextStyle(color: theme.subtitle),
+                              style: TextStyle(color: colorScheme.onSurfaceVariant),
                             ),
                             Text(
                               DurationFormatter.format(duration),
-                              style: TextStyle(color: theme.subtitle),
+                              style: TextStyle(color: colorScheme.onSurfaceVariant),
                             ),
                           ],
                         ),
@@ -222,88 +230,70 @@ class _PlayerPageState extends State<PlayerPage> {
                 padding: EdgeInsets.only(bottom: screenHeight * 0.03),
                 child: Align(
                   alignment: Alignment.bottomCenter,
-                  child: Container(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            GestureDetector(
-                              onTap: () {
-                                musicProvider.cycleRepeatMode();
-                              },
-                              behavior: HitTestBehavior.opaque,
-                              child: Padding(
-                                padding: const EdgeInsets.all(12.0),
-                                child: Icon(
-                                  _repeatIcon(musicProvider.repeatModeState),
-                                  size: screenWidth * 0.075,
-                                  color: _repeatColor(
-                                    context,
-                                    musicProvider.repeatModeState,
-                                    isDark,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () async {
-                                await musicProvider.playPrevious();
-                              },
-                              icon: Icon(
-                                Icons.skip_previous,
-                                size: screenWidth * 0.1,
-                                color: theme.text,
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () {
-                                if (musicProvider.isPlaying) {
-                                  player.pause();
-                                } else {
-                                  player.play();
-                                }
-                              },
-                              icon: Icon(
-                                musicProvider.isPlaying
-                                    ? Icons.pause_circle_filled
-                                    : Icons.play_circle_filled,
-                                size: screenWidth * 0.18,
-                                color: isDark
-                                    ? Colors.purpleAccent
-                                    : Theme.of(context).primaryColor,
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () async {
-                                await musicProvider.playNext();
-                              },
-                              icon: Icon(
-                                Icons.skip_next,
-                                size: screenWidth * 0.1,
-                                color: theme.text,
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () {
-                                musicProvider.toggleShuffle();
-                              },
-                              icon: Icon(
-                                Icons.shuffle,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          GestureDetector(
+                            onTap: vm.cycleRepeatMode,
+                            behavior: HitTestBehavior.opaque,
+                            child: Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: Icon(
+                                _repeatIcon(vm.repeatMode),
                                 size: screenWidth * 0.075,
-                                color: _shuffleColor(
+                                color: _repeatColor(
                                   context,
-                                  musicProvider.isShuffleOn,
+                                  vm.repeatMode,
                                   isDark,
                                 ),
                               ),
                             ),
-                          ],
-                        ),
-                        SizedBox(height: screenHeight * 0.03),
-                      ],
-                    ),
+                          ),
+                          IconButton(
+                            onPressed: vm.playPrevious,
+                            icon: Icon(
+                              Icons.skip_previous,
+                              size: screenWidth * 0.1,
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: vm.togglePlayPause,
+                            icon: Icon(
+                              vm.isPlaying
+                                  ? Icons.pause_circle_filled
+                                  : Icons.play_circle_filled,
+                              size: screenWidth * 0.18,
+                              color: colorScheme.primary,
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: vm.playNext,
+                            icon: Icon(
+                              Icons.skip_next,
+                              size: screenWidth * 0.1,
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: vm.toggleShuffle,
+                            icon: Icon(
+                              Icons.shuffle,
+                              size: screenWidth * 0.075,
+                              color: _shuffleColor(
+                                context,
+                                vm.isShuffleOn,
+                                isDark,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: screenHeight * 0.03),
+                    ],
                   ),
                 ),
               ),

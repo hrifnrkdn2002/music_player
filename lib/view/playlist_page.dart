@@ -1,50 +1,38 @@
+import 'package:music_player/get_it.dart';
 import 'package:music_player/index/view_essential_index.dart';
-import 'package:music_player/index/view_model_index.dart';
+import 'package:music_player/interface.dart';
+import 'package:music_player/view_model/playlist_view_model.dart';
 
 import 'playlist_detail_page.dart';
 
-class PlaylistPage extends StatefulWidget {
+class PlaylistPage extends StatelessWidget {
   const PlaylistPage({super.key});
 
   @override
-  State<PlaylistPage> createState() => _PlaylistPageState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => PlaylistViewModel(locator<DatabaseRepositoryInterface>()),
+      child: const _PlaylistPageBody(),
+    );
+  }
 }
 
-class _PlaylistPageState extends State<PlaylistPage> {
-  String _searchQuery = ''; // 플레이리스트 검색어 저장 변수
-
-  @override
-  void initState() {
-    super.initState();
-    // 💡 화면이 열릴 때 플레이리스트 목록을 DB에서 새로고침합니다.
-    Future.microtask(() {
-      context.read<DatabaseViewModel>().loadPlaylists();
-    });
-  }
+class _PlaylistPageBody extends StatelessWidget {
+  const _PlaylistPageBody();
 
   @override
   Widget build(BuildContext context) {
-    // 💡 테마 및 view_model 데이터 가져오기
-    final musicProvider = context.watch<MusicViewModel>();
-    final dbProvider = context.watch<DatabaseViewModel>();
+    final vm = context.watch<PlaylistViewModel>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
 
-    final isDark = context.watch<DarkModeViewModel>().isDarkMode;
-    final theme = AppTheme(isDark);
-
-    // 💡 [검색 및 정렬] 검색어에 맞는 플레이리스트만 필터링 (DB에서 이미 최신순 정렬되어 옴)
-    final filteredPlaylists = dbProvider.playlists.where((playlist) {
-      final name = playlist['name'].toString().toLowerCase();
-      return name.contains(_searchQuery.toLowerCase());
-    }).toList();
+    final filteredPlaylists = vm.filteredPlaylists;
 
     return Scaffold(
-      backgroundColor: theme.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Column(
           children: [
-            /* =======================================================================
-             * [1] 상단 검색바 & 추가 버튼 (HomePage 스타일 참고)
-             * ======================================================================= */
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Row(
@@ -52,38 +40,29 @@ class _PlaylistPageState extends State<PlaylistPage> {
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        color: isDark
-                            ? const Color(0xFF1C1C1C)
-                            : Colors.grey[200],
+                        color: colorScheme.surface,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: TextField(
-                        style: TextStyle(color: theme.text),
+                        style: TextStyle(color: colorScheme.onSurface),
                         decoration: InputDecoration(
                           hintText: '플레이리스트 검색',
-                          hintStyle: TextStyle(color: theme.subtitle),
-                          prefixIcon: Icon(Icons.search, color: theme.subtitle),
+                          hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+                          prefixIcon: Icon(Icons.search, color: colorScheme.onSurfaceVariant),
                           border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 12,
-                          ),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 12),
                         ),
-                        onChanged: (value) {
-                          setState(() {
-                            _searchQuery = value; // 검색어 실시간 갱신
-                          });
-                        },
+                        onChanged: vm.setSearchQuery,
                       ),
                     ),
                   ),
                   const SizedBox(width: 12),
-                  // 💡 플레이리스트 추가 버튼
                   GestureDetector(
-                    onTap: () => _showCreatePlaylistDialog(context, isDark),
+                    onTap: () => _showCreatePlaylistDialog(context, vm),
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: isDark ? Colors.purpleAccent : Colors.purple,
+                        color: colorScheme.primary,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(Icons.add, color: Colors.white),
@@ -92,26 +71,20 @@ class _PlaylistPageState extends State<PlaylistPage> {
                 ],
               ),
             ),
-
-            /* =======================================================================
-             * [2] 플레이리스트 목록 (기획안 반영)
-             * ======================================================================= */
             Expanded(
               child: filteredPlaylists.isEmpty
                   ? Center(
                       child: Text(
-                        _searchQuery.isEmpty
+                        vm.searchQuery.isEmpty
                             ? '생성된 플레이리스트가 없습니다.'
                             : '검색 결과가 없습니다.',
-                        style: TextStyle(color: theme.subtitle, fontSize: 16),
+                        style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 16),
                       ),
                     )
                   : ListView.builder(
                       itemCount: filteredPlaylists.length,
                       itemBuilder: (context, index) {
                         final playlist = filteredPlaylists[index];
-                        final playlistId = playlist['id'] as int;
-                        final playlistName = playlist['name'] as String;
 
                         return ListTile(
                           leading: Container(
@@ -127,39 +100,27 @@ class _PlaylistPageState extends State<PlaylistPage> {
                             ),
                           ),
                           title: Text(
-                            playlistName,
+                            playlist.name,
                             style: TextStyle(
-                              color: theme.text,
+                              color: colorScheme.onSurface,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           subtitle: Text(
-                            '곡 ${playlist['song_count'] ?? 0}개',
+                            '곡 ${playlist.count}개',
                             style: TextStyle(
-                              color: theme.subtitle,
+                              color: colorScheme.onSurfaceVariant,
                               fontSize: 12,
                             ),
                           ),
                           trailing: PopupMenuButton<String>(
-                            icon: Icon(Icons.more_vert, color: theme.subtitle),
-                            color: isDark
-                                ? const Color(0xFF1C1C1C)
-                                : Colors.white,
+                            icon: Icon(Icons.more_vert, color: colorScheme.onSurfaceVariant),
+                            color: colorScheme.surface,
                             onSelected: (value) {
                               if (value == 'edit') {
-                                _showEditPlaylistDialog(
-                                  context,
-                                  playlistId,
-                                  playlistName,
-                                  isDark,
-                                );
+                                _showEditPlaylistDialog(context, vm, playlist.id, playlist.name);
                               } else if (value == 'delete') {
-                                _showDeleteConfirmDialog(
-                                  context,
-                                  playlistId,
-                                  playlistName,
-                                  isDark,
-                                );
+                                _showDeleteConfirmDialog(context, vm, playlist.id, playlist.name);
                               }
                             },
                             itemBuilder: (context) => [
@@ -167,16 +128,9 @@ class _PlaylistPageState extends State<PlaylistPage> {
                                 value: 'edit',
                                 child: Row(
                                   children: [
-                                    Icon(
-                                      Icons.edit,
-                                      size: 20,
-                                      color: theme.text,
-                                    ),
+                                    Icon(Icons.edit, size: 20, color: colorScheme.onSurface),
                                     const SizedBox(width: 8),
-                                    Text(
-                                      '이름 수정',
-                                      style: TextStyle(color: theme.text),
-                                    ),
+                                    Text('이름 수정', style: TextStyle(color: colorScheme.onSurface)),
                                   ],
                                 ),
                               ),
@@ -184,32 +138,24 @@ class _PlaylistPageState extends State<PlaylistPage> {
                                 value: 'delete',
                                 child: Row(
                                   children: [
-                                    Icon(
-                                      Icons.delete,
-                                      size: 20,
-                                      color: Colors.red,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      '삭제',
-                                      style: TextStyle(color: Colors.red),
-                                    ),
+                                    Icon(Icons.delete, size: 20, color: Colors.red),
+                                    SizedBox(width: 8),
+                                    Text('삭제', style: TextStyle(color: Colors.red)),
                                   ],
                                 ),
                               ),
                             ],
                           ),
-                          // 💡 PlaylistPage.dart의 ListTile 내부 onTap 부분 수정
                           onTap: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (_) => PlaylistDetailPage(
-                                  playlistId: playlistId,
-                                  playlistName: playlistName,
+                                  playlistId: playlist.id,
+                                  playlistName: playlist.name,
                                 ),
                               ),
-                            );
+                            ).then((_) => vm.loadPlaylists());
                           },
                         );
                       },
@@ -221,136 +167,102 @@ class _PlaylistPageState extends State<PlaylistPage> {
     );
   }
 
-  /* =======================================================================
-   * [3] 다이얼로그 모음 (생성 / 수정 / 삭제)
-   * ======================================================================= */
-
-  // 💡 1. 플레이리스트 생성 다이얼로그
-  void _showCreatePlaylistDialog(BuildContext context, bool isDark) {
+  void _showCreatePlaylistDialog(BuildContext context, PlaylistViewModel vm) {
     final controller = TextEditingController();
+    final colorScheme = Theme.of(context).colorScheme;
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1C1C1C) : Colors.white,
-        title: Text(
-          '새 플레이리스트',
-          style: TextStyle(color: isDark ? Colors.white : Colors.black),
-        ),
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: Theme.of(dialogContext).colorScheme.surface,
+        title: Text('새 플레이리스트', style: TextStyle(color: colorScheme.onSurface)),
         content: TextField(
           controller: controller,
-          style: TextStyle(color: isDark ? Colors.white : Colors.black),
+          style: TextStyle(color: colorScheme.onSurface),
           decoration: InputDecoration(
             hintText: '플레이리스트 이름을 입력하세요',
-            hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.grey),
+            hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
           ),
           autofocus: true,
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('취소', style: TextStyle(color: Colors.grey)),
           ),
           TextButton(
             onPressed: () {
               final name = controller.text.trim();
               if (name.isNotEmpty) {
-                context.read<DatabaseViewModel>().createPlaylist(name);
-                Navigator.pop(context);
+                vm.createPlaylist(name);
+                Navigator.pop(dialogContext);
               }
             },
-            child: Text(
-              '생성',
-              style: TextStyle(
-                color: isDark ? Colors.purpleAccent : Colors.purple,
-              ),
-            ),
+            child: Text('생성', style: TextStyle(color: colorScheme.primary)),
           ),
         ],
       ),
     );
   }
 
-  // 💡 2. 플레이리스트 이름 수정 다이얼로그
   void _showEditPlaylistDialog(
-    BuildContext context,
-    int id,
-    String currentName,
-    bool isDark,
-  ) {
+      BuildContext context, PlaylistViewModel vm, int id, String currentName) {
     final controller = TextEditingController(text: currentName);
+    final colorScheme = Theme.of(context).colorScheme;
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1C1C1C) : Colors.white,
-        title: Text(
-          '이름 수정',
-          style: TextStyle(color: isDark ? Colors.white : Colors.black),
-        ),
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: Theme.of(dialogContext).colorScheme.surface,
+        title: Text('이름 수정', style: TextStyle(color: colorScheme.onSurface)),
         content: TextField(
           controller: controller,
-          style: TextStyle(color: isDark ? Colors.white : Colors.black),
+          style: TextStyle(color: colorScheme.onSurface),
           decoration: InputDecoration(
             hintText: '수정할 이름을 입력하세요',
-            hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.grey),
+            hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
           ),
           autofocus: true,
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('취소', style: TextStyle(color: Colors.grey)),
           ),
           TextButton(
             onPressed: () {
               final newName = controller.text.trim();
               if (newName.isNotEmpty && newName != currentName) {
-                context.read<DatabaseViewModel>().updatePlaylistName(
-                  id,
-                  newName,
-                );
-                Navigator.pop(context);
+                vm.updatePlaylistName(id, newName);
+                Navigator.pop(dialogContext);
               }
             },
-            child: Text(
-              '수정',
-              style: TextStyle(
-                color: isDark ? Colors.purpleAccent : Colors.purple,
-              ),
-            ),
+            child: Text('수정', style: TextStyle(color: colorScheme.primary)),
           ),
         ],
       ),
     );
   }
 
-  // 💡 3. 플레이리스트 삭제 확인 다이얼로그
   void _showDeleteConfirmDialog(
-    BuildContext context,
-    int id,
-    String name,
-    bool isDark,
-  ) {
+      BuildContext context, PlaylistViewModel vm, int id, String name) {
+    final colorScheme = Theme.of(context).colorScheme;
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1C1C1C) : Colors.white,
-        title: Text(
-          '플레이리스트 삭제',
-          style: TextStyle(color: isDark ? Colors.white : Colors.black),
-        ),
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: Theme.of(dialogContext).colorScheme.surface,
+        title: Text('플레이리스트 삭제', style: TextStyle(color: colorScheme.onSurface)),
         content: Text(
           '\'$name\' 플레이리스트를 삭제하시겠습니까?\n(플레이리스트 내부의 곡만 삭제되며 원본 곡은 유지됩니다.)',
-          style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
+          style: TextStyle(color: colorScheme.onSurfaceVariant),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('취소', style: TextStyle(color: Colors.grey)),
           ),
           TextButton(
             onPressed: () {
-              context.read<DatabaseViewModel>().deletePlaylist(id);
-              Navigator.pop(context);
+              vm.deletePlaylist(id);
+              Navigator.pop(dialogContext);
             },
             child: const Text('삭제', style: TextStyle(color: Colors.red)),
           ),

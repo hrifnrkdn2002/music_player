@@ -37,6 +37,8 @@ dependencies:
   path_provider: ^2.1.5
   just_audio: ^0.9.36
   audio_service: ^0.18.14
+  get_it: ^7.7.0
+  shared_preferences: ^2.3.0
 
 dev_dependencies:
   flutter_test:

@@ -1,27 +1,40 @@
+import 'package:music_player/get_it.dart';
 import 'package:music_player/index/view_essential_index.dart';
+import 'package:music_player/interface.dart';
 import 'package:music_player/utils/duration_formatter.dart';
 import 'package:music_player/view/player_page.dart';
-import 'package:music_player/view_model/music_view_model.dart';
+import 'package:music_player/view_model/mini_player_view_model.dart';
 
 class MiniPlayer extends StatelessWidget {
   const MiniPlayer({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final musicProvider = context.watch<MusicViewModel>();
-    final currentSong = musicProvider.currentSong;
+    // 자체적으로 VM을 Provider로 감싸 어디서든 사용 가능.
+    return ChangeNotifierProvider(
+      create: (_) => MiniPlayerViewModel(locator<MusicServiceInterface>()),
+      child: const _MiniPlayerBody(),
+    );
+  }
+}
+
+class _MiniPlayerBody extends StatelessWidget {
+  const _MiniPlayerBody();
+
+  @override
+  Widget build(BuildContext context) {
+    final vm = context.watch<MiniPlayerViewModel>();
+    final currentSong = vm.currentSong;
 
     if (currentSong == null) {
       return const SizedBox.shrink();
     }
 
-    final player = musicProvider.player;
-
-    final isDark = context.watch<DarkModeViewModel>().isDarkMode;
-    final theme = AppTheme(isDark);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Material(
-      color: theme.surface,
+      color: colorScheme.surface,
       child: InkWell(
         onTap: () {
           Navigator.push(
@@ -58,14 +71,14 @@ class MiniPlayer extends StatelessWidget {
                           currentSong.title,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: theme.text,
+                            color: colorScheme.onSurface,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
                           currentSong.artist ?? '재생 중인 곡 없음',
-                          style: TextStyle(color: theme.subtitle, fontSize: 12),
+                          style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 12),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -73,37 +86,27 @@ class MiniPlayer extends StatelessWidget {
                     ),
                   ),
                   IconButton(
-                    onPressed: () async {
-                      await musicProvider.playPrevious();
-                    },
-                    icon: Icon(Icons.skip_previous, color: theme.text),
+                    onPressed: vm.playPrevious,
+                    icon: Icon(Icons.skip_previous, color: colorScheme.onSurface),
                   ),
                   IconButton(
-                    onPressed: () {
-                      if (musicProvider.isPlaying) {
-                        player.pause();
-                      } else {
-                        player.play();
-                      }
-                    },
+                    onPressed: vm.togglePlayPause,
                     icon: Icon(
-                      musicProvider.isPlaying ? Icons.pause : Icons.play_arrow,
-                      color: theme.text,
+                      vm.isPlaying ? Icons.pause : Icons.play_arrow,
+                      color: colorScheme.onSurface,
                     ),
                   ),
                   IconButton(
-                    onPressed: () async {
-                      await musicProvider.playNext();
-                    },
-                    icon: Icon(Icons.skip_next, color: theme.text),
+                    onPressed: vm.playNext,
+                    icon: Icon(Icons.skip_next, color: colorScheme.onSurface),
                   ),
                 ],
               ),
               StreamBuilder<Duration>(
-                stream: player.positionStream,
+                stream: vm.positionStream,
                 builder: (context, snapshot) {
                   final position = snapshot.data ?? Duration.zero;
-                  final duration = player.duration ?? Duration.zero;
+                  final duration = vm.duration ?? Duration.zero;
 
                   return Column(
                     children: [
@@ -116,15 +119,9 @@ class MiniPlayer extends StatelessWidget {
                           overlayShape: const RoundSliderOverlayShape(
                             overlayRadius: 10,
                           ),
-                          activeTrackColor: isDark
-                              ? Colors.purpleAccent
-                              : Theme.of(context).primaryColor,
-                          inactiveTrackColor: isDark
-                              ? Colors.white12
-                              : Colors.grey[300],
-                          thumbColor: isDark
-                              ? Colors.purpleAccent
-                              : Theme.of(context).primaryColor,
+                          activeTrackColor: colorScheme.primary,
+                          inactiveTrackColor: isDark ? Colors.white12 : Colors.grey[300],
+                          thumbColor: colorScheme.primary,
                         ),
                         child: Slider(
                           value: position.inMilliseconds.toDouble().clamp(
@@ -135,9 +132,7 @@ class MiniPlayer extends StatelessWidget {
                               ? duration.inMilliseconds.toDouble()
                               : 1.0,
                           onChanged: (newValue) {
-                            player.seek(
-                              Duration(milliseconds: newValue.toInt()),
-                            );
+                            vm.seek(Duration(milliseconds: newValue.toInt()));
                           },
                         ),
                       ),
@@ -150,14 +145,14 @@ class MiniPlayer extends StatelessWidget {
                               DurationFormatter.format(position),
                               style: TextStyle(
                                 fontSize: 12,
-                                color: theme.subtitle,
+                                color: colorScheme.onSurfaceVariant,
                               ),
                             ),
                             Text(
                               DurationFormatter.format(duration),
                               style: TextStyle(
                                 fontSize: 12,
-                                color: theme.subtitle,
+                                color: colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ],

@@ -1,8 +1,10 @@
+import 'package:music_player/get_it.dart';
 import 'package:music_player/index/view_essential_index.dart';
-import 'package:music_player/index/view_model_index.dart';
+import 'package:music_player/interface.dart';
 import 'package:music_player/model/song.dart';
+import 'package:music_player/view_model/add_song_to_playlist_view_model.dart';
 
-class AddSongToPlaylistPage extends StatefulWidget {
+class AddSongToPlaylistPage extends StatelessWidget {
   final int playlistId;
   final String playlistName;
 
@@ -13,113 +15,49 @@ class AddSongToPlaylistPage extends StatefulWidget {
   });
 
   @override
-  State<AddSongToPlaylistPage> createState() => _AddSongToPlaylistPageState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => AddSongToPlaylistViewModel(
+        playlistId: playlistId,
+        db: locator<DatabaseRepositoryInterface>(),
+      ),
+      child: _AddSongToPlaylistBody(playlistName: playlistName),
+    );
+  }
 }
 
-class _AddSongToPlaylistPageState extends State<AddSongToPlaylistPage> {
-  bool _isLoading = true;
-  String _searchQuery = '';
+class _AddSongToPlaylistBody extends StatelessWidget {
+  final String playlistName;
 
-  List<Song> _allSongs = [];
-  Set<int> _existingSongIds = {};
+  const _AddSongToPlaylistBody({required this.playlistName});
 
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
-  }
-
-  Future<void> _loadData() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final dbProvider = context.read<DatabaseViewModel>();
-
-      if (dbProvider.songs.isEmpty) {
-        await dbProvider.loadSongs();
-      }
-
-      final playlistSongs = await dbProvider.getSongsInPlaylist(
-        widget.playlistId,
-      );
-
-      final existingIds = playlistSongs
-          .map((song) => song.id)
-          .whereType<int>()
-          .toSet();
-
-      if (!mounted) return;
-
-      setState(() {
-        _allSongs = List<Song>.from(dbProvider.songs);
-        _existingSongIds = existingIds;
-      });
-    } catch (e) {
-      debugPrint('AddSongToPlaylistPage load 오류: $e');
-    } finally {
-      if (!mounted) return;
-
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _addSong(Song song) async {
-    final songId = song.id;
-    if (songId == null) return;
-
-    try {
-      await context.read<DatabaseViewModel>().addSongToPlaylist(
-        widget.playlistId,
-        songId,
-      );
-
-      if (!mounted) return;
-
-      setState(() {
-        _existingSongIds.add(songId);
-      });
-
+  Future<void> _addSong(BuildContext context, AddSongToPlaylistViewModel vm, Song song) async {
+    final ok = await vm.addSong(song);
+    if (!context.mounted) return;
+    if (ok) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('\'${song.title}\' 곡을 추가했습니다.'),
           duration: const Duration(seconds: 1),
         ),
       );
-    } catch (e) {
-      debugPrint('곡 추가 오류: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = context.watch<DarkModeViewModel>().isDarkMode;
-    final theme = AppTheme(isDark);
+    final vm = context.watch<AddSongToPlaylistViewModel>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
     final tileColor = isDark ? const Color(0xFF1C1C1C) : Colors.grey[100]!;
 
-    final filteredSongs = _allSongs.where((song) {
-      final songId = song.id;
-
-      // 이미 플레이리스트에 있는 곡은 아예 목록에서 제외
-      if (songId != null && _existingSongIds.contains(songId)) {
-        return false;
-      }
-
-      final title = song.title.toLowerCase();
-      final artist = (song.artist ?? '').toLowerCase();
-      final query = _searchQuery.toLowerCase();
-
-      return title.contains(query) || artist.contains(query);
-    }).toList();
+    final filteredSongs = vm.filteredSongs;
 
     return Scaffold(
-      backgroundColor: theme.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: theme.background,
-        foregroundColor: theme.text,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        foregroundColor: colorScheme.onSurface,
         elevation: 0,
         centerTitle: true,
         title: Column(
@@ -127,11 +65,11 @@ class _AddSongToPlaylistPageState extends State<AddSongToPlaylistPage> {
             const Text('곡 추가', style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 2),
             Text(
-              widget.playlistName,
+              playlistName,
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.normal,
-                color: theme.subtitle,
+                color: colorScheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -144,35 +82,31 @@ class _AddSongToPlaylistPageState extends State<AddSongToPlaylistPage> {
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
               child: Container(
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1C1C1C) : Colors.grey[200],
+                  color: colorScheme.surface,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: TextField(
-                  style: TextStyle(color: theme.text),
+                  style: TextStyle(color: colorScheme.onSurface),
                   decoration: InputDecoration(
                     hintText: '곡 제목 또는 아티스트 검색',
-                    hintStyle: TextStyle(color: theme.subtitle),
-                    prefixIcon: Icon(Icons.search, color: theme.subtitle),
+                    hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+                    prefixIcon: Icon(Icons.search, color: colorScheme.onSurfaceVariant),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 12,
                       vertical: 14,
                     ),
                   ),
-                  onChanged: (value) {
-                    setState(() {
-                      _searchQuery = value;
-                    });
-                  },
+                  onChanged: vm.setSearchQuery,
                 ),
               ),
             ),
             Expanded(
               child: RefreshIndicator(
-                onRefresh: _loadData,
-                child: _isLoading
+                onRefresh: vm.load,
+                child: vm.isLoading
                     ? const Center(child: CircularProgressIndicator())
-                    : _allSongs.isEmpty
+                    : vm.allSongsEmpty
                     ? ListView(
                         children: [
                           SizedBox(
@@ -182,7 +116,7 @@ class _AddSongToPlaylistPageState extends State<AddSongToPlaylistPage> {
                             child: Text(
                               '기기에 추가된 곡이 없습니다.',
                               style: TextStyle(
-                                color: theme.subtitle,
+                                color: colorScheme.onSurfaceVariant,
                                 fontSize: 16,
                               ),
                             ),
@@ -197,11 +131,11 @@ class _AddSongToPlaylistPageState extends State<AddSongToPlaylistPage> {
                           ),
                           Center(
                             child: Text(
-                              _searchQuery.isEmpty
+                              vm.searchQuery.isEmpty
                                   ? '추가할 수 있는 곡이 없습니다.'
                                   : '검색 결과가 없습니다.',
                               style: TextStyle(
-                                color: theme.subtitle,
+                                color: colorScheme.onSurfaceVariant,
                                 fontSize: 16,
                               ),
                             ),
@@ -213,7 +147,6 @@ class _AddSongToPlaylistPageState extends State<AddSongToPlaylistPage> {
                         itemCount: filteredSongs.length,
                         itemBuilder: (context, index) {
                           final song = filteredSongs[index];
-
                           return Container(
                             margin: const EdgeInsets.symmetric(
                               horizontal: 16,
@@ -243,7 +176,7 @@ class _AddSongToPlaylistPageState extends State<AddSongToPlaylistPage> {
                               title: Text(
                                 song.title,
                                 style: TextStyle(
-                                  color: theme.text,
+                                  color: colorScheme.onSurface,
                                   fontWeight: FontWeight.w600,
                                 ),
                                 maxLines: 1,
@@ -256,7 +189,7 @@ class _AddSongToPlaylistPageState extends State<AddSongToPlaylistPage> {
                                       ? song.artist!
                                       : '알 수 없는 아티스트',
                                   style: TextStyle(
-                                    color: theme.subtitle,
+                                    color: colorScheme.onSurfaceVariant,
                                     fontSize: 12,
                                   ),
                                   maxLines: 1,
@@ -265,9 +198,9 @@ class _AddSongToPlaylistPageState extends State<AddSongToPlaylistPage> {
                               ),
                               trailing: Icon(
                                 Icons.add_circle,
-                                color: theme.accent,
+                                color: colorScheme.primary,
                               ),
-                              onTap: () => _addSong(song),
+                              onTap: () => _addSong(context, vm, song),
                             ),
                           );
                         },

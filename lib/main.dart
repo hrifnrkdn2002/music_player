@@ -1,54 +1,23 @@
-import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
-import 'package:music_player/service/audio_player_handler.dart';
 import 'package:music_player/view/setting_page.dart';
 import 'package:music_player/view/download_page.dart';
 import 'package:music_player/view/home_page.dart';
 import 'package:music_player/view/playlist_page.dart';
 import 'package:music_player/view_model/dark_mode_view_model.dart';
-import 'package:music_player/view_model/database_view_model.dart';
-import 'package:music_player/view_model/music_view_model.dart';
 import 'package:provider/provider.dart';
+
+import 'get_it.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  late AudioPlayerHandler audioHandler;
+  await setupLocator();
 
-  try {
-    audioHandler =
-        //BaseAudioHandler를 상송받은 AudioPlayerHandler의 인스턴스 audioHandler를 OS에 등록하기 위해
-        //AudioService.init 함수를 사용함
-        await AudioService.init(
-          builder: () => AudioPlayerHandler(),
-          config: const AudioServiceConfig(
-            androidNotificationChannelId: 'com.example.music_player.channel',
-            androidNotificationChannelName: '음악 플레이어',
-            androidNotificationIcon: 'mipmap/ic_launcher',
-            androidShowNotificationBadge: true,
-            androidStopForegroundOnPause: true,
-          ),
-        ).timeout(
-          const Duration(seconds: 10),
-          onTimeout: () {
-            debugPrint('[AudioService] init timeout — 서비스 연결 실패');
-            throw Exception('AudioService init timed out');
-          },
-        );
-  } catch (e, stack) {
-    debugPrint('[AudioService] init 오류: $e');
-    debugPrint(stack.toString());
-    // 초기화 실패 시에도 앱이 실행되도록 빈 핸들러 생성
-    audioHandler = AudioPlayerHandler();
-  }
-
+  // 전역 Provider는 DarkModeViewModel만.
+  // 페이지별 VM은 각 페이지가 ChangeNotifierProvider로 직접 생성.
   runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => MusicViewModel(audioHandler)),
-        ChangeNotifierProvider(create: (_) => DatabaseViewModel()),
-        ChangeNotifierProvider(create: (_) => DarkModeViewModel()),
-      ],
+    ChangeNotifierProvider(
+      create: (_) => DarkModeViewModel(),
       child: const MyApp(),
     ),
   );
@@ -69,7 +38,13 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         brightness: Brightness.light,
         scaffoldBackgroundColor: Colors.white,
-        primaryColor: Colors.purple,
+        colorScheme: ColorScheme.light(
+          surface: Colors.grey.shade200,
+          onSurface: Colors.black,
+          onSurfaceVariant: Colors.grey.shade600,
+          primary: Colors.purple,
+          onPrimary: Colors.white,
+        ),
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.white,
           foregroundColor: Colors.black,
@@ -81,7 +56,13 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF121212),
-        primaryColor: Colors.purpleAccent,
+        colorScheme: ColorScheme.dark(
+          surface: const Color(0xFF1C1C1C),
+          onSurface: Colors.white,
+          onSurfaceVariant: Colors.white70,
+          primary: Colors.purpleAccent,
+          onPrimary: Colors.black,
+        ),
         appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFF121212),
           foregroundColor: Colors.white,
@@ -108,7 +89,7 @@ class MainPage extends StatefulWidget {
   const MainPage({super.key});
 
   @override
-  _MainPageState createState() => _MainPageState();
+  State<MainPage> createState() => _MainPageState();
 }
 
 class _MainPageState extends State<MainPage> {
@@ -125,7 +106,7 @@ class _MainPageState extends State<MainPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('음악', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('음악', style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
         elevation: 0,
       ),
