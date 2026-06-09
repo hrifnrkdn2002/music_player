@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:music_player/view/mini_player.dart';
 import 'package:music_player/view/setting_page.dart';
 import 'package:music_player/view/download_page.dart';
 import 'package:music_player/view/home_page.dart';
@@ -110,7 +111,17 @@ class _MainPageState extends State<MainPage> {
         centerTitle: true,
         elevation: 0,
       ),
-      body: _pages[_currentIndex],
+      body: Column(
+        children: [
+          Expanded(
+            child: IndexedStack(
+              index: _currentIndex,
+              children: _pages,
+            ),
+          ),
+          const MiniPlayer(),
+        ],
+      ),
 
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,

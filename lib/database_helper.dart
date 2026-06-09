@@ -5,6 +5,7 @@ import 'database_helper.dart';
 export 'package:sqflite/sqflite.dart';
 
 class DatabaseHelper {
+  // ?은 null허용, 처음 싱글톤으로
   static Database? _database;
 
   Future<Database> get database async {
@@ -12,14 +13,15 @@ class DatabaseHelper {
     _database = await _initDB('music_player.db');
     return _database!;
   }
-
+  // getDatabasesPath()는 앱자체의 고유 DB 경로를 반환
+  // openDatabase()는 해당 경로에 DB 파일이 없으면 새로 생성 있으면 DB open.
   Future<Database> _initDB(String fileName) async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, fileName);
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON'); // 외래 키 활성화
       },
@@ -30,7 +32,11 @@ class DatabaseHelper {
 
   Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
     // 버전 업그레이드 시 여기에 마이그레이션을 순서대로 추가합니다.
-    // 예: if (oldVersion < 2) { await db.execute('ALTER TABLE songs ADD COLUMN ...'); }
+    if (oldVersion < 2) {
+      await db.execute(
+        'ALTER TABLE songs ADD COLUMN is_youtube INTEGER NOT NULL DEFAULT 0',
+      );
+    }
   }
 
   Future<void> _createDB(Database db, int version) async {
@@ -43,7 +49,8 @@ class DatabaseHelper {
         file_path TEXT NOT NULL UNIQUE,
         album_image_path TEXT,
         duration INTEGER,
-        unique_key TEXT UNIQUE
+        unique_key TEXT UNIQUE,
+        is_youtube INTEGER NOT NULL DEFAULT 0
       )
     ''');
 
@@ -58,7 +65,7 @@ class DatabaseHelper {
 
     // 3. 플레이리스트-곡 매핑 테이블
     await db.execute('''
-            CREATE TABLE playlist_songs (
+      CREATE TABLE playlist_songs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         playlist_id INTEGER NOT NULL,
         song_id INTEGER NOT NULL,

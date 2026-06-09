@@ -7,6 +7,7 @@ import 'package:music_player/model/song.dart';
 
 class PlaybackHandler extends BaseAudioHandler with SeekHandler {
   final AudioPlayer _player = AudioPlayer();
+  final YoutubeServiceInterface _youtube;
 
   // OS → Service: repeat/shuffle 변경 요청 스트림
   final _repeatRequestController =
@@ -31,7 +32,7 @@ class PlaybackHandler extends BaseAudioHandler with SeekHandler {
   Duration get position => _player.position;
   Duration? get duration => _player.duration;
 
-  PlaybackHandler() {
+  PlaybackHandler(this._youtube) {
     _player.playingStream.listen((_) => _pushPlaybackState());
     _player.processingStateStream.listen((_) => _pushPlaybackState());
     _player.positionStream.listen((_) => _pushPlaybackState());
@@ -44,18 +45,24 @@ class PlaybackHandler extends BaseAudioHandler with SeekHandler {
   }
 
   // ─── Service → 엔진 명령 ──────────────────────────────────
-
+  // ConcatenatingAudioSource로 Dart List를 오디오 엔진이 아는 재생목록으로 바꿈
+  // .map()으로 map 데이터를 AudioSource로 변환 후 toList()
   Future<void> setQueue(List<Song> songs, {int initialIndex = 0}) {
     final source = ConcatenatingAudioSource(
-      children: songs.map((s) => AudioSource.file(s.filePath)).toList(),
+      children: songs.map(_sourceFor).toList(),
     );
     return _player.setAudioSource(source, initialIndex: initialIndex);
   }
 
-  Future<void> playFile(String filePath) async {
-    await _player.setFilePath(filePath);
+  Future<void> playSong(Song song) async {
+    await _player.setAudioSource(_sourceFor(song));
     await _player.play();
   }
+
+  // 곡 출처에 따라 오디오 소스를 분기 (로컬 파일 / 유튜브 스트림)
+  AudioSource _sourceFor(Song song) => song.isYoutube
+      ? _youtube.createSource(song.filePath)
+      : AudioSource.file(song.filePath);
 
   // ConcatenatingAudioSource 내 특정 인덱스로 이동
   Future<void> jumpTo(int index) =>
@@ -88,11 +95,22 @@ class PlaybackHandler extends BaseAudioHandler with SeekHandler {
   @override
   Future<void> play() => _player.play();
 
+
   @override
   Future<void> pause() => _player.pause();
 
   @override
   Future<void> stop() => _player.stop();
+
+  // 앱을 최근 목록에서 완전히 제거하면 서비스까지 완전 종료한다.
+  // (백그라운드 재생은 유지하되, 명시적 종료 시에만 종료)
+  // _player.stop() + super.stop()으로 processingState를 idle로 보내면
+  // audio_service가 네이티브 stopSelf()를 호출해 포그라운드 서비스/프로세스가 정리된다.
+  @override
+  Future<void> onTaskRemoved() async {
+    await _player.stop();
+    await super.stop();
+  }
 
   @override
   Future<void> seek(Duration position) => _player.seek(position);
@@ -117,6 +135,7 @@ class PlaybackHandler extends BaseAudioHandler with SeekHandler {
   RepeatModeState _lastRepeatMode = RepeatModeState.off;
   bool _lastShuffleOn = false;
 
+
   void _pushPlaybackState({RepeatModeState? repeatMode, bool? shuffleOn}) {
     final repeat = repeatMode ?? _lastRepeatMode;
     final shuffle = shuffleOn ?? _lastShuffleOn;
@@ -124,10 +143,14 @@ class PlaybackHandler extends BaseAudioHandler with SeekHandler {
     _lastShuffleOn = shuffle;
 
     final playing = _player.playing;
+
+
     playbackState.add(PlaybackState(
       controls: [
         MediaControl(
-          androidIcon: repeat == RepeatModeState.one
+          androidIcon: repeat == RepeatModeState.off
+              ? 'drawable/ic_repeat_none'
+              : repeat == RepeatModeState.one
               ? 'drawable/ic_repeat_one'
               : 'drawable/ic_repeat',
           label: 'Repeat',

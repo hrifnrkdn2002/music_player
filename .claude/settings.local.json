@@ -6,7 +6,18 @@
       "mcp__ide__getDiagnostics",
       "Bash(python3 *)",
       "Read(//mnt/c/Project/**)",
-      "Bash(flutter pub *)"
+      "Bash(flutter pub *)",
+      "Bash(adb devices *)",
+      "Bash(/c/Users/hrifn/AppData/Local/Android/Sdk/platform-tools/adb.exe devices *)",
+      "Bash(/c/Users/hrifn/AppData/Local/Android/Sdk/platform-tools/adb.exe logcat *)",
+      "Bash(\"/c/Users/hrifn/AppData/Local/Android/Sdk/platform-tools/adb.exe\" exec-out *)",
+      "Read(//tmp/**)",
+      "Bash(\"/c/Users/hrifn/AppData/Local/Android/Sdk/platform-tools/adb.exe\" shell *)",
+      "Bash(flutter analyze *)",
+      "Bash(flutter build *)",
+      "Bash(/c/Users/hrifn/AppData/Local/Android/Sdk/platform-tools/adb.exe install *)",
+      "Read(//c/Users/hrifn/AppData/Local/Pub/Cache/hosted/pub.dev/**)",
+      "Bash(flutter devices *)"
     ]
   }
 }

@@ -8,8 +8,8 @@ import 'package:music_player/model/song.dart';
 class MiniPlayerViewModel extends ChangeNotifier {
   final MusicServiceInterface _service;
 
-  late Song? _currentSong;
-  late bool _isPlaying;
+  Song? _currentSong;
+  bool _isPlaying = false;
 
   StreamSubscription<Song?>? _currentSongSub;
   StreamSubscription<bool>? _isPlayingSub;

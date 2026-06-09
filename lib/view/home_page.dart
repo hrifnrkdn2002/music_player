@@ -2,7 +2,6 @@ import 'package:music_player/get_it.dart';
 import 'package:music_player/index/view_essential_index.dart';
 import 'package:music_player/interface.dart';
 import 'package:music_player/model/song.dart';
-import 'package:music_player/view/mini_player.dart';
 import 'package:music_player/view/player_page.dart';
 import 'package:music_player/view_model/home_view_model.dart';
 import 'package:provider/provider.dart';
@@ -166,8 +165,9 @@ class _HomePageBody extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                              onTap: () async {
-                                await context.read<HomeViewModel>().playSong(song);
+                              onTap: () {
+                                print("노래 클릭");
+                                context.read<HomeViewModel>().playSong(song);
                                 if (!context.mounted) return;
                                 Navigator.push(
                                   context,
@@ -183,7 +183,6 @@ class _HomePageBody extends StatelessWidget {
               ],
             ),
           ),
-          const MiniPlayer(),
         ],
       ),
     );

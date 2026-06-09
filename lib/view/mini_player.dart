@@ -77,7 +77,7 @@ class _MiniPlayerBody extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
-                          currentSong.artist ?? '재생 중인 곡 없음',
+                          currentSong.artist ?? '알 수 없는 아티스트',
                           style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 12),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,

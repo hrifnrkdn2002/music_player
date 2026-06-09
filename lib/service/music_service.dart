@@ -124,7 +124,7 @@ class MusicService implements MusicServiceInterface {
 
   @override
   Future<void> playSong(Song song) async {
-    if (!File(song.filePath).existsSync()) {
+    if (!song.isYoutube && !File(song.filePath).existsSync()) {
       _setError('파일을 찾을 수 없습니다: ${song.title}');
       return;
     }
@@ -141,7 +141,7 @@ class MusicService implements MusicServiceInterface {
       } else {
         _songs = [song];
         _playlistCtrl.add(_songs);
-        await _handler.playFile(song.filePath);
+        await _handler.playSong(song);
       }
     } catch (e) {
       _setError('재생 중 오류가 발생했습니다: ${song.title}');
@@ -247,4 +247,5 @@ class MusicService implements MusicServiceInterface {
         AudioServiceRepeatMode.one => RepeatModeState.one,
         AudioServiceRepeatMode.all || AudioServiceRepeatMode.group => RepeatModeState.all,
       };
+
 }
