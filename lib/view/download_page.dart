@@ -36,6 +36,7 @@ class _DownloadPageBodyState extends State<_DownloadPageBody> {
   }
 
   Future<void> _addUrl(DownloadViewModel vm) async {
+    print('유튜브 URL: ${_urlController.text}');
     await vm.addYoutubeUrl(_urlController.text);
     if (!mounted) return;
     if (vm.error == null) {
@@ -67,6 +68,9 @@ class _DownloadPageBodyState extends State<_DownloadPageBody> {
             TextField(
               controller: _urlController,
               enabled: !vm.isAdding,
+              keyboardType: TextInputType.url,
+              autocorrect: false,
+              enableSuggestions: false,
               decoration: const InputDecoration(
                 labelText: '유튜브 URL',
                 hintText: 'https://www.youtube.com/watch?v=...',

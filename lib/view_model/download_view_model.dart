@@ -37,18 +37,23 @@ class DownloadViewModel extends ChangeNotifier {
 
   // 유튜브 URL → 메타데이터 해석 → 중복 체크 후 DB 삽입
   Future<void> addYoutubeUrl(String url) async {
+    print('addYoutubeUrl 호출: $url');
     final trimmed = url.trim();
     if (trimmed.isEmpty || _isAdding) return;
     _isAdding = true;
     _error = null;
     notifyListeners();
     try {
+      print("유튜브 URL: $trimmed");
       final existing = await _db.getAllSongs();
+      print("existing: $existing");
       final song = await _youtube.resolveMetadata(trimmed);
+      print("song: $song");
       if (existing.any((s) => s.uniqueKey == song.uniqueKey)) {
         _error = '이미 추가된 곡입니다';
       } else {
         await _db.insertSong(song);
+        await _service.refreshSongs();
       }
     } catch (e) {
       _error = '추가 실패: URL을 확인해주세요';

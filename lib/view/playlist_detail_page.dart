@@ -52,7 +52,7 @@ class _PlaylistDetailBody extends StatelessWidget {
   Future<void> _handleSongTap(BuildContext context, PlaylistDetailViewModel vm, int index) async {
     if (vm.isSelectionMode) return;
     try {
-      await vm.playFromIndex(index);
+      vm.playFromIndex(index);
       if (!context.mounted) return;
       Navigator.push(
         context,

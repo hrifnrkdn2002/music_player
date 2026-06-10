@@ -14,7 +14,7 @@ class HomePage extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (_) => HomeViewModel(
         locator<MusicServiceInterface>(),
-        locator<DatabaseRepositoryInterface>(),
+        locator<DatabaseServiceInterface>(),
       ),
       child: const _HomePageBody(),
     );

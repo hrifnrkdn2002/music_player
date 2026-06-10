@@ -76,7 +76,15 @@ abstract class DatabaseRepositoryInterface {
 }
 
 abstract class DatabaseServiceInterface {
+  // 곡 라이브러리 SSOT: 늦게 구독한 VM 시드용 스냅샷 + 변경 스트림
+  List<Song> get songs;
+  Stream<List<Song>> get songsStream;
+  // DB에서 곡 목록을 다시 읽어 스트림으로 방송 (추가/수정/삭제 후 호출)
+  Future<void> refreshSongs();
+
   Future<bool> pickAndInsertSongs(List<Song> songs);
+  Future<void> updateSong(Song song);
+  Future<void> deleteSong(int id);
 }
 
 abstract class YoutubeServiceInterface {

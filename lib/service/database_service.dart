@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:music_player/interface.dart';
 import 'package:path/path.dart' as p;
@@ -8,6 +10,33 @@ class DatabaseService extends DatabaseServiceInterface{
   final DatabaseRepositoryInterface _databaseRepositoryInterface;
   DatabaseService(this._databaseRepositoryInterface);
 
+  // 곡 라이브러리 SSOT (싱글톤으로 등록되어 앱 전역이 같은 인스턴스를 공유)
+  List<Song> _songs = [];
+  final _songsCtrl = StreamController<List<Song>>.broadcast();
+
+  @override
+  List<Song> get songs => List.unmodifiable(_songs);
+
+  @override
+  Stream<List<Song>> get songsStream => _songsCtrl.stream;
+
+  @override
+  Future<void> refreshSongs() async {
+    _songs = await _databaseRepositoryInterface.getAllSongs();
+    _songsCtrl.add(_songs);
+  }
+
+  @override
+  Future<void> updateSong(Song song) async {
+    await _databaseRepositoryInterface.updateSong(song);
+    await refreshSongs();
+  }
+
+  @override
+  Future<void> deleteSong(int id) async {
+    await _databaseRepositoryInterface.deleteSong(id);
+    await refreshSongs();
+  }
 
 
   @override
@@ -51,6 +80,7 @@ class DatabaseService extends DatabaseServiceInterface{
 
       await _databaseRepositoryInterface.insertSong(song);
     }
+    await refreshSongs();
     return true;
   }
   bool isDuplicate(List<Song> songs, String uniqueKey){
